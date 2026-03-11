@@ -2,6 +2,8 @@
 //
 // All Tauri commands exposed to the frontend via invoke().
 
+use std::path::PathBuf;
+
 use std::sync::Arc;
 use tauri::State;
 
@@ -17,6 +19,7 @@ pub struct AppState {
     pub engine: Arc<LearningEngine>,
     pub tracker: Arc<ProgressTracker>,
     pub scheduler: Arc<Scheduler>,
+    pub data_dir: PathBuf,
 }
 
 // ─── Exercise Commands ────────────────────────────────────────────────────────
@@ -261,4 +264,60 @@ fn sample_words() -> Vec<Word> {
             tags: vec!["character".to_string()], difficulty: 3, created_at: now, is_active: true,
         },
     ]
+}
+
+// ─── Settings Commands ────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppSettings {
+    pub exercises_per_day: u32,
+    pub idle_threshold_secs: u32,
+    pub min_gap_minutes: u32,
+    pub autostart: bool,
+    pub show_session_word: bool,
+    pub sound_effects: bool,
+    pub work_hours_only: bool,
+    pub work_hours_start: String,
+    pub work_hours_end: String,
+}
+
+impl Default for AppSettings {
+    fn default() -> Self {
+        Self {
+            exercises_per_day: 50,
+            idle_threshold_secs: 5,
+            min_gap_minutes: 30,
+            autostart: true,
+            show_session_word: true,
+            sound_effects: false,
+            work_hours_only: true,
+            work_hours_start: "08:00".to_string(),
+            work_hours_end: "22:00".to_string(),
+        }
+    }
+}
+
+fn settings_path(data_dir: &std::path::Path) -> std::path::PathBuf {
+    data_dir.join("settings.json")
+}
+
+#[tauri::command]
+pub async fn get_settings(state: State<'_, AppState>) -> Result<AppSettings, String> {
+    let path = settings_path(&state.data_dir);
+    if !path.exists() {
+        return Ok(AppSettings::default());
+    }
+    let text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    serde_json::from_str(&text).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn save_settings(
+    settings: AppSettings,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let path = settings_path(&state.data_dir);
+    let text = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
+    std::fs::write(&path, text).map_err(|e| e.to_string())
 }

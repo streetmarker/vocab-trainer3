@@ -166,26 +166,107 @@ const SchedulerStatus: React.FC = () => {
 
 // ─── Settings Page ────────────────────────────────────────────────────────────
 
+type Settings = {
+  exercisesPerDay: number;
+  idleThresholdSecs: number;
+  minGapMinutes: number;
+  autostart: boolean;
+  showSessionWord: boolean;
+  soundEffects: boolean;
+  workHoursOnly: boolean;
+  workHoursStart: string;
+  workHoursEnd: string;
+};
+
+const DEFAULT_SETTINGS: Settings = {
+  exercisesPerDay: 50,
+  idleThresholdSecs: 5,
+  minGapMinutes: 30,
+  autostart: true,
+  showSessionWord: true,
+  soundEffects: false,
+  workHoursOnly: true,
+  workHoursStart: "08:00",
+  workHoursEnd: "22:00",
+};
+
 const SettingsPage: React.FC = () => {
-  return (
+  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    api.getSettings().then((s) => {
+      setSettings(s);
+      setLoaded(true);
+    }).catch(() => setLoaded(true));
+  }, []);
+
+  const update = async (patch: Partial<Settings>) => {
+    const next = { ...settings, ...patch };
+    setSettings(next);
+    setSaving(true);
+    try {
+      await api.saveSettings(next);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!loaded) return (
     <div className="settings-page">
       <h1 className="settings-title">Ustawienia</h1>
+      <div style={{ color: "var(--muted)", padding: "32px 0" }}>Ładowanie…</div>
+    </div>
+  );
+
+  return (
+    <div className="settings-page">
+      <h1 className="settings-title">
+        Ustawienia
+        {saving && <span style={{ fontSize: 12, color: "var(--muted)", marginLeft: 12, fontWeight: 400 }}>Zapisywanie…</span>}
+      </h1>
       <div className="settings-sections">
+
         <SettingsSection title="Harmonogram">
           <SettingRow
             label="Ćwiczenia dziennie"
             description="Maksymalna liczba wyskakujących okienek dziennie"
-            control={<input type="number" defaultValue={50} min={5} max={200} className="setting-input" />}
+            control={
+              <input
+                type="number"
+                value={settings.exercisesPerDay}
+                min={5} max={200}
+                className="setting-input"
+                onChange={(e) => update({ exercisesPerDay: Number(e.target.value) })}
+              />
+            }
           />
           <SettingRow
             label="Próg bezczynności"
             description="Sekundy bezczynności przed pokazaniem ćwiczenia"
-            control={<input type="number" defaultValue={5} min={1} max={60} className="setting-input" />}
+            control={
+              <input
+                type="number"
+                value={settings.idleThresholdSecs}
+                min={1} max={60}
+                className="setting-input"
+                onChange={(e) => update({ idleThresholdSecs: Number(e.target.value) })}
+              />
+            }
           />
           <SettingRow
             label="Minimalny odstęp między ćwiczeniami"
             description="Minuty przerwy między wyskakującymi okienkami"
-            control={<input type="number" defaultValue={30} min={5} max={120} className="setting-input" />}
+            control={
+              <input
+                type="number"
+                value={settings.minGapMinutes}
+                min={5} max={120}
+                className="setting-input"
+                onChange={(e) => update({ minGapMinutes: Number(e.target.value) })}
+              />
+            }
           />
         </SettingsSection>
 
@@ -193,17 +274,17 @@ const SettingsPage: React.FC = () => {
           <SettingRow
             label="Uruchamiaj z Windowsem"
             description="Uruchom VocabTrainer automatycznie po zalogowaniu"
-            control={<Toggle defaultOn />}
+            control={<Toggle on={settings.autostart} onChange={(v) => update({ autostart: v })} />}
           />
           <SettingRow
             label="Pokaż słowo sesji"
             description="Wyświetl kartę wprowadzającą przy starcie komputera"
-            control={<Toggle defaultOn />}
+            control={<Toggle on={settings.showSessionWord} onChange={(v) => update({ showSessionWord: v })} />}
           />
           <SettingRow
             label="Efekty dźwiękowe"
             description="Odtwarzaj dźwięki przy poprawnych/błędnych odpowiedziach"
-            control={<Toggle />}
+            control={<Toggle on={settings.soundEffects} onChange={(v) => update({ soundEffects: v })} />}
           />
         </SettingsSection>
 
@@ -211,20 +292,31 @@ const SettingsPage: React.FC = () => {
           <SettingRow
             label="Tylko w godzinach pracy"
             description="Ogranicz ćwiczenia do określonych godzin"
-            control={<Toggle defaultOn />}
+            control={<Toggle on={settings.workHoursOnly} onChange={(v) => update({ workHoursOnly: v })} />}
           />
           <SettingRow
             label="Godziny pracy"
             description="Czas rozpoczęcia i zakończenia dostarczania ćwiczeń"
             control={
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <input type="time" defaultValue="08:00" className="setting-input" />
+                <input
+                  type="time"
+                  value={settings.workHoursStart}
+                  className="setting-input"
+                  onChange={(e) => update({ workHoursStart: e.target.value })}
+                />
                 <span style={{ color: "var(--muted)" }}>do</span>
-                <input type="time" defaultValue="22:00" className="setting-input" />
+                <input
+                  type="time"
+                  value={settings.workHoursEnd}
+                  className="setting-input"
+                  onChange={(e) => update({ workHoursEnd: e.target.value })}
+                />
               </div>
             }
           />
         </SettingsSection>
+
       </div>
     </div>
   );
@@ -249,16 +341,13 @@ const SettingRow: React.FC<{ label: string; description: string; control: React.
   </div>
 );
 
-const Toggle: React.FC<{ defaultOn?: boolean }> = ({ defaultOn = false }) => {
-  const [on, setOn] = useState(defaultOn);
-  return (
-    <button
-      className={`toggle ${on ? "on" : ""}`}
-      onClick={() => setOn(!on)}
-      role="switch"
-      aria-checked={on}
-    >
-      <div className="toggle-thumb" />
-    </button>
-  );
-};
+const Toggle: React.FC<{ on: boolean; onChange: (v: boolean) => void }> = ({ on, onChange }) => (
+  <button
+    className={`toggle ${on ? "on" : ""}`}
+    onClick={() => onChange(!on)}
+    role="switch"
+    aria-checked={on}
+  >
+    <div className="toggle-thumb" />
+  </button>
+);

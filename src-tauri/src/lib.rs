@@ -55,6 +55,7 @@ pub fn run() {
                 engine: Arc::clone(&engine),
                 tracker: Arc::clone(&tracker),
                 scheduler: Arc::clone(&scheduler),
+                data_dir: data_dir.clone(),
             });
 
             setup_tray(app)?;
@@ -111,6 +112,8 @@ pub fn run() {
             commands::get_scheduler_status,
             commands::set_scheduler_paused,
             commands::seed_sample_words,
+            commands::get_settings,
+            commands::save_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

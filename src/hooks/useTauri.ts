@@ -58,6 +58,30 @@ export const api = {
 
   seedSampleWords: (): Promise<number> =>
     invoke("seed_sample_words"),
+
+  getSettings: (): Promise<{
+    exercisesPerDay: number;
+    idleThresholdSecs: number;
+    minGapMinutes: number;
+    autostart: boolean;
+    showSessionWord: boolean;
+    soundEffects: boolean;
+    workHoursOnly: boolean;
+    workHoursStart: string;
+    workHoursEnd: string;
+  }> => invoke("get_settings"),
+
+  saveSettings: (settings: {
+    exercisesPerDay: number;
+    idleThresholdSecs: number;
+    minGapMinutes: number;
+    autostart: boolean;
+    showSessionWord: boolean;
+    soundEffects: boolean;
+    workHoursOnly: boolean;
+    workHoursStart: string;
+    workHoursEnd: string;
+  }): Promise<void> => invoke("save_settings", { settings }),
 };
 
 export function useTauriEvent<T = unknown>(
