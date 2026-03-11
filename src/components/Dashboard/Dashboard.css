@@ -1,0 +1,220 @@
+/* src/components/Dashboard/Dashboard.css */
+
+.dashboard {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.dash-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+}
+
+.spinner {
+  width: 36px; height: 36px;
+  border: 3px solid rgba(255,255,255,0.1);
+  border-top-color: #6c63ff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Header ────────────────────────────────────────────────────────────────── */
+.dash-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.dash-title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0;
+  background: linear-gradient(135deg, #fff 0%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.dash-subtitle {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 4px 0 0;
+}
+
+.streak-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 14px;
+  padding: 12px 20px;
+  gap: 2px;
+}
+.streak-fire { font-size: 24px; }
+.streak-count { font-size: 26px; font-weight: 900; color: #fbbf24; line-height: 1; }
+.streak-label { font-size: 10px; color: #fbbf24; text-transform: uppercase; letter-spacing: 0.08em; }
+
+/* ── Stats Grid ────────────────────────────────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 800px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--accent);
+  border-radius: 14px 14px 0 0;
+}
+.stat-card:hover {
+  border-color: rgba(255,255,255,0.12);
+  transform: translateY(-2px);
+}
+
+.stat-icon { font-size: 22px; }
+.stat-value { font-size: 30px; font-weight: 900; letter-spacing: -0.03em; color: white; }
+.stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
+.stat-sub { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 2px; }
+
+/* ── Section ───────────────────────────────────────────────────────────────── */
+.dash-section { display: flex; flex-direction: column; gap: 14px; }
+
+.section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+/* ── Activity Heatmap ──────────────────────────────────────────────────────── */
+.heatmap {
+  --cell-empty: rgba(255,255,255,0.04);
+  display: flex;
+  gap: 3px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.heatmap-week { display: flex; flex-direction: column; gap: 3px; }
+
+.heatmap-cell {
+  width: 12px; height: 12px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.heatmap-cell:hover { transform: scale(1.3); }
+
+/* ── Daily Chart ───────────────────────────────────────────────────────────── */
+.daily-chart {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  height: 120px;
+}
+
+.bar-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+}
+
+.bar-wrap {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.bar {
+  width: 100%;
+  background: rgba(108, 99, 255, 0.2);
+  border-radius: 4px 4px 0 0;
+  position: relative;
+  overflow: hidden;
+  min-height: 4px;
+  transition: height 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.bar-correct {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #6c63ff;
+  border-radius: 4px 4px 0 0;
+  transition: height 0.5s;
+}
+
+.bar-label {
+  font-size: 9px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.empty-chart {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 24px 0;
+  text-align: center;
+}
+
+/* ── Word Grid ─────────────────────────────────────────────────────────────── */
+.word-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.word-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.word-card:hover {
+  border-color: rgba(255,255,255,0.12);
+  transform: translateY(-2px);
+}
+
+.wc-term { font-size: 16px; font-weight: 800; color: white; letter-spacing: -0.02em; }
+.wc-pos  { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
+.wc-def  { font-size: 11px; color: var(--muted); line-height: 1.5; flex: 1; }
+.wc-footer { display: flex; justify-content: flex-end; }
+.wc-difficulty { font-size: 10px; font-weight: 700; }

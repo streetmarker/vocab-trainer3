@@ -1,0 +1,17 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Default capabilities for VocabTrainer – grants IPC access to all custom commands",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:app:default",
+    "core:window:default",
+    "core:webview:default",
+    "core:menu:default",
+    "core:tray:default",
+    "core:path:default",
+    "core:event:default",
+    "core:image:default"
+  ]
+}
