@@ -218,3 +218,18 @@
 .wc-def  { font-size: 11px; color: var(--muted); line-height: 1.5; flex: 1; }
 .wc-footer { display: flex; justify-content: flex-end; }
 .wc-difficulty { font-size: 10px; font-weight: 700; }
+
+/* ─── Polish definition in word cards ────────────────────────────── */
+.word-card-pl {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: #8892aa;
+  line-height: 1.4;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding-top: 8px;
+  margin-top: 6px;
+}
+
+.word-card-pl .pl-flag { font-size: 0.9rem; flex-shrink: 0; }

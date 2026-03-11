@@ -28,7 +28,7 @@ export default function App() {
         const exercise = await api.getExercise(e.payload.wordId);
         setPendingExercise(exercise);
       } catch (err) {
-        console.error("Failed to load exercise:", err);
+        console.error("Błąd ładowania ćwiczenia:", err);
       }
     });
     return () => { unlisten.then((f) => f()); };
@@ -43,7 +43,7 @@ export default function App() {
           setPendingExercise(result.exercise);
         }
       } catch (err) {
-        console.error("Session start failed:", err);
+        console.error("Błąd startu sesji:", err);
       }
     });
     return () => { unlisten.then((f) => f()); };
@@ -56,9 +56,9 @@ export default function App() {
   };
 
   const navItems: { id: AppRoute; icon: string; label: string }[] = [
-    { id: "dashboard", icon: "📊", label: "Dashboard" },
-    { id: "vocab", icon: "📚", label: "Vocabulary" },
-    { id: "settings", icon: "⚙️", label: "Settings" },
+    { id: "dashboard", icon: "📊", label: "Panel główny" },
+    { id: "vocab",     icon: "📚", label: "Słownictwo" },
+    { id: "settings",  icon: "⚙️", label: "Ustawienia" },
   ];
 
   return (
@@ -69,7 +69,7 @@ export default function App() {
           <div className="logo-mark">V</div>
           <div>
             <div className="logo-name">VocabTrainer</div>
-            <div className="logo-tagline">Micro Learning</div>
+            <div className="logo-tagline">nauka angielskiego</div>
           </div>
         </div>
 
@@ -112,8 +112,8 @@ export default function App() {
       {showResult && (
         <div className={`result-toast ${showResult.wasCorrect ? "correct" : "incorrect"}`}>
           {showResult.wasCorrect
-            ? `✓ Correct! +${showResult.streak > 1 ? ` ${showResult.streak} streak!` : ""}`
-            : `Next review in ${(showResult.newIntervalDays * 24).toFixed(0)}h`}
+            ? `✓ Poprawnie!${showResult.streak > 1 ? ` 🔥 Seria: ${showResult.streak}` : ""}`
+            : `Następna powtórka za ${(showResult.newIntervalDays * 24).toFixed(0)}h`}
         </div>
       )}
     </div>
@@ -148,7 +148,7 @@ const SchedulerStatus: React.FC = () => {
   return (
     <div className="scheduler-widget">
       <div className="sched-header">
-        <span className="sched-label">Scheduler</span>
+        <span className="sched-label">Harmonogram</span>
         <div className={`sched-dot ${status?.isReady ? "ready" : "waiting"}`} />
       </div>
       {status?.blockedReason && (
@@ -158,7 +158,7 @@ const SchedulerStatus: React.FC = () => {
         className={`sched-toggle ${paused ? "paused" : ""}`}
         onClick={togglePause}
       >
-        {paused ? "▶ Resume" : "⏸ Pause"}
+        {paused ? "▶ Wznów" : "⏸ Wstrzymaj"}
       </button>
     </div>
   );
@@ -169,57 +169,57 @@ const SchedulerStatus: React.FC = () => {
 const SettingsPage: React.FC = () => {
   return (
     <div className="settings-page">
-      <h1 className="settings-title">Settings</h1>
+      <h1 className="settings-title">Ustawienia</h1>
       <div className="settings-sections">
-        <SettingsSection title="Scheduler">
+        <SettingsSection title="Harmonogram">
           <SettingRow
-            label="Exercises per day"
-            description="Maximum number of popups per day"
+            label="Ćwiczenia dziennie"
+            description="Maksymalna liczba wyskakujących okienek dziennie"
             control={<input type="number" defaultValue={50} min={5} max={200} className="setting-input" />}
           />
           <SettingRow
-            label="Idle threshold"
-            description="Seconds of inactivity before showing an exercise"
+            label="Próg bezczynności"
+            description="Sekundy bezczynności przed pokazaniem ćwiczenia"
             control={<input type="number" defaultValue={5} min={1} max={60} className="setting-input" />}
           />
           <SettingRow
-            label="Minimum gap between exercises"
-            description="Minutes between popups"
+            label="Minimalny odstęp między ćwiczeniami"
+            description="Minuty przerwy między wyskakującymi okienkami"
             control={<input type="number" defaultValue={30} min={5} max={120} className="setting-input" />}
           />
         </SettingsSection>
 
-        <SettingsSection title="Learning">
+        <SettingsSection title="Nauka">
           <SettingRow
-            label="Autostart with Windows"
-            description="Launch VocabTrainer when you log in"
+            label="Uruchamiaj z Windowsem"
+            description="Uruchom VocabTrainer automatycznie po zalogowaniu"
             control={<Toggle defaultOn />}
           />
           <SettingRow
-            label="Show word of the session"
-            description="Display intro card when computer starts"
+            label="Pokaż słowo sesji"
+            description="Wyświetl kartę wprowadzającą przy starcie komputera"
             control={<Toggle defaultOn />}
           />
           <SettingRow
-            label="Sound effects"
-            description="Play sounds on correct/incorrect answers"
+            label="Efekty dźwiękowe"
+            description="Odtwarzaj dźwięki przy poprawnych/błędnych odpowiedziach"
             control={<Toggle />}
           />
         </SettingsSection>
 
-        <SettingsSection title="Work Hours">
+        <SettingsSection title="Godziny pracy">
           <SettingRow
-            label="Only show during work hours"
-            description="Restrict exercises to specific hours"
+            label="Tylko w godzinach pracy"
+            description="Ogranicz ćwiczenia do określonych godzin"
             control={<Toggle defaultOn />}
           />
           <SettingRow
-            label="Work hours"
-            description="Start and end time for exercise delivery"
+            label="Godziny pracy"
+            description="Czas rozpoczęcia i zakończenia dostarczania ćwiczeń"
             control={
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <input type="time" defaultValue="08:00" className="setting-input" />
-                <span style={{ color: "var(--muted)" }}>to</span>
+                <span style={{ color: "var(--muted)" }}>do</span>
                 <input type="time" defaultValue="22:00" className="setting-input" />
               </div>
             }

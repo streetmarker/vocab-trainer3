@@ -1,7 +1,5 @@
 // src/types/index.ts
 
-// ─── Domain Models ────────────────────────────────────────────────────────────
-
 export type PartOfSpeech =
   | "noun" | "verb" | "adjective" | "adverb" | "pronoun"
   | "preposition" | "conjunction" | "interjection" | "phrase";
@@ -16,6 +14,7 @@ export interface Word {
   id: number;
   term: string;
   definition: string;
+  definitionPl?: string;       // Polish translation/explanation
   partOfSpeech: PartOfSpeech;
   phonetic?: string;
   examples: string[];
@@ -58,6 +57,7 @@ export interface IntroductionExercise {
   phonetic?: string;
   partOfSpeech: string;
   definition: string;
+  definitionPl?: string;
   example?: string;
   synonyms: string[];
   isNewWord: boolean;
@@ -207,18 +207,18 @@ export type AppRoute = "dashboard" | "vocab" | "settings" | "popup";
 
 export interface ExerciseSession {
   currentExercise: Exercise | null;
-  startedAt: number; // timestamp ms
+  startedAt: number;
   sessionId: string;
 }
 
-export type DifficultyLabel = "Beginner" | "Elementary" | "Intermediate" | "Advanced" | "Expert";
+export type DifficultyLabel = "Początkujący" | "Podstawowy" | "Średni" | "Zaawansowany" | "Ekspert";
 
 export const DIFFICULTY_LABELS: Record<number, DifficultyLabel> = {
-  1: "Beginner",
-  2: "Elementary",
-  3: "Intermediate",
-  4: "Advanced",
-  5: "Expert",
+  1: "Początkujący",
+  2: "Podstawowy",
+  3: "Średni",
+  4: "Zaawansowany",
+  5: "Ekspert",
 };
 
 export const DIFFICULTY_COLORS: Record<number, string> = {
@@ -234,4 +234,23 @@ export const MASTERY_COLORS: Record<MasteryLevel, string> = {
   learning: "#3b82f6",
   reviewing: "#f59e0b",
   mastered: "#10b981",
+};
+
+export const MASTERY_LABELS: Record<MasteryLevel, string> = {
+  new: "Nowe",
+  learning: "W nauce",
+  reviewing: "Powtórka",
+  mastered: "Opanowane",
+};
+
+export const PART_OF_SPEECH_LABELS: Record<string, string> = {
+  noun: "rzeczownik",
+  verb: "czasownik",
+  adjective: "przymiotnik",
+  adverb: "przysłówek",
+  pronoun: "zaimek",
+  preposition: "przyimek",
+  conjunction: "spójnik",
+  interjection: "wykrzyknik",
+  phrase: "wyrażenie",
 };

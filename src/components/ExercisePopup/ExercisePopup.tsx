@@ -5,6 +5,7 @@ import type {
   FillInBlankExercise, TrueFalseExercise, DefinitionRecallExercise,
   ContextualGuessExercise, AnswerResult,
 } from "../../types";
+import { PART_OF_SPEECH_LABELS } from "../../types";
 import { api } from "../../hooks/useTauri";
 import "./ExercisePopup.css";
 
@@ -14,7 +15,6 @@ interface Props {
   onDismiss: () => void;
 }
 
-// Maps Rust PascalCase tag → snake_case for the backend ExerciseType enum
 function toExerciseTypeStr(type_: string): string {
   return type_.replace(/([A-Z])/g, (c, _, i) => (i === 0 ? c.toLowerCase() : `_${c.toLowerCase()}`));
 }
@@ -31,7 +31,6 @@ export const ExercisePopup: React.FC<Props> = ({ exercise, onComplete, onDismiss
     const responseTimeMs = Date.now() - startTimeRef.current;
     setAnswered(true);
     setWasCorrect(correct);
-
     try {
       const res = await api.submitAnswer({
         wordId: exercise.wordId,
@@ -46,7 +45,7 @@ export const ExercisePopup: React.FC<Props> = ({ exercise, onComplete, onDismiss
         setTimeout(() => onComplete(res), 300);
       }, correct ? 1200 : 2200);
     } catch (err) {
-      console.error("Failed to submit answer:", err);
+      console.error("Błąd zapisu odpowiedzi:", err);
     }
   }, [answered, exercise, onComplete]);
 
@@ -55,9 +54,6 @@ export const ExercisePopup: React.FC<Props> = ({ exercise, onComplete, onDismiss
     setTimeout(onDismiss, 300);
   };
 
-  // Introduction auto-dismisses after "Got it" click
-  const isIntro = exercise.type === "Introduction";
-
   return (
     <div className={`popup-root ${isExiting ? "exiting" : "entering"}`}>
       <div className="popup-header">
@@ -65,7 +61,7 @@ export const ExercisePopup: React.FC<Props> = ({ exercise, onComplete, onDismiss
           <span className="logo-icon">📚</span>
           <span className="logo-text">VocabTrainer</span>
         </div>
-        <button className="popup-dismiss" onClick={handleDismiss} aria-label="Dismiss">✕</button>
+        <button className="popup-dismiss" onClick={handleDismiss} aria-label="Zamknij">✕</button>
       </div>
 
       <div className="popup-body">
@@ -112,11 +108,11 @@ export const ExercisePopup: React.FC<Props> = ({ exercise, onComplete, onDismiss
         )}
       </div>
 
-      {answered && result && !isIntro && (
+      {answered && result && exercise.type !== "Introduction" && (
         <div className={`popup-feedback ${wasCorrect ? "correct" : "incorrect"}`}>
           {wasCorrect
-            ? `✓ Correct!${result.streak > 1 ? `  🔥 ${result.streak} streak` : ""}`
-            : `✗ The answer was: "${result.word.term}"`}
+            ? `✓ Poprawnie!${result.streak > 1 ? `  🔥 Seria: ${result.streak}` : ""}`
+            : `✗ Odpowiedź: "${result.word.term}"`}
         </div>
       )}
 
@@ -128,41 +124,54 @@ export const ExercisePopup: React.FC<Props> = ({ exercise, onComplete, onDismiss
 };
 
 const typeLabels: Record<string, string> = {
-  Introduction: "New Word",
-  MultipleChoice: "Meaning",
-  TrueFalse: "True / False",
-  DefinitionRecall: "Recall",
-  ContextualGuess: "Context",
-  FillInBlank: "Fill in Blank",
-  SpellingCheck: "Spelling",
-  SynonymMatch: "Synonym",
+  Introduction:     "Nowe słowo",
+  MultipleChoice:   "Wybór znaczenia",
+  TrueFalse:        "Prawda / Fałsz",
+  DefinitionRecall: "Rozpoznaj słowo",
+  ContextualGuess:  "Z kontekstu",
+  FillInBlank:      "Uzupełnij lukę",
+  SpellingCheck:    "Pisownia",
+  SynonymMatch:     "Synonim",
 };
 
-// ─── Exercise View Components ─────────────────────────────────────────────────
+// ─── Exercise Views ───────────────────────────────────────────────────────────
 
 const IntroductionView: React.FC<{
   exercise: IntroductionExercise;
   onAcknowledge: () => void;
 }> = ({ exercise, onAcknowledge }) => (
   <div className="intro-view">
-    {exercise.isNewWord && <div className="new-badge">New Word</div>}
+    {exercise.isNewWord && <div className="new-badge">Nowe słowo</div>}
     <div className="intro-term">{exercise.term}</div>
     {exercise.phonetic && <div className="intro-phonetic">{exercise.phonetic}</div>}
-    <div className="intro-pos">{exercise.partOfSpeech}</div>
+    <div className="intro-pos">{PART_OF_SPEECH_LABELS[exercise.partOfSpeech] ?? exercise.partOfSpeech}</div>
+
     <div className="intro-definition">{exercise.definition}</div>
-    {exercise.example && (
-      <div className="intro-example">
-        <span className="example-icon">💬</span>{exercise.example}
+
+    {exercise.definitionPl && (
+      <div className="intro-definition-pl">
+        <span className="pl-flag">🇵🇱</span>
+        {exercise.definitionPl}
       </div>
     )}
+
+    {exercise.example && (
+      <div className="intro-example">
+        <span className="example-icon">💬</span>
+        <em>{exercise.example}</em>
+      </div>
+    )}
+
     {exercise.synonyms.length > 0 && (
       <div className="intro-synonyms">
+        <span className="synonyms-label">Synonimy: </span>
         {exercise.synonyms.map((s) => (
           <span key={s} className="synonym-chip">{s}</span>
         ))}
       </div>
     )}
-    <button className="btn-primary" onClick={onAcknowledge}>Got it →</button>
+
+    <button className="btn-primary" onClick={onAcknowledge}>Rozumiem →</button>
   </div>
 );
 
@@ -172,7 +181,8 @@ const MultipleChoiceView: React.FC<{
   onAnswer: (correct: boolean, answer: string) => void;
 }> = ({ exercise, answered, onAnswer }) => (
   <div className="mc-view">
-    <div className="mc-question">{exercise.question}</div>
+    <div className="mc-question">Jakie jest znaczenie słowa?</div>
+    <div className="mc-term">{exercise.term}</div>
     {exercise.hint && <div className="mc-hint">({exercise.hint})</div>}
     <div className="mc-options">
       {exercise.options.map((opt, i) => (
@@ -196,6 +206,7 @@ const TrueFalseView: React.FC<{
   onAnswer: (correct: boolean, answer: string) => void;
 }> = ({ exercise, answered, onAnswer }) => (
   <div className="tf-view">
+    <div className="dr-prompt">Czy ta definicja pasuje do słowa?</div>
     <div className="tf-term">{exercise.term}</div>
     <div className="tf-definition">{exercise.shownDefinition}</div>
     {answered && (
@@ -206,10 +217,10 @@ const TrueFalseView: React.FC<{
     {!answered && (
       <div className="tf-buttons">
         <button className="btn-true" onClick={() => onAnswer(exercise.isCorrectDefinition, "true")}>
-          ✓ True
+          ✓ Prawda
         </button>
         <button className="btn-false" onClick={() => onAnswer(!exercise.isCorrectDefinition, "false")}>
-          ✗ False
+          ✗ Fałsz
         </button>
       </div>
     )}
@@ -222,9 +233,9 @@ const DefinitionRecallView: React.FC<{
   onAnswer: (correct: boolean, answer: string) => void;
 }> = ({ exercise, answered, onAnswer }) => (
   <div className="dr-view">
-    <div className="dr-prompt">Which word matches this definition?</div>
+    <div className="dr-prompt">Które słowo odpowiada tej definicji?</div>
     <div className="dr-definition">{exercise.definition}</div>
-    <div className="dr-pos">({exercise.partOfSpeech})</div>
+    <div className="dr-pos">({PART_OF_SPEECH_LABELS[exercise.partOfSpeech] ?? exercise.partOfSpeech})</div>
     <div className="mc-options">
       {exercise.options.map((opt, i) => (
         <button
@@ -248,7 +259,7 @@ const ContextualGuessView: React.FC<{
 }> = ({ exercise, answered, onAnswer }) => (
   <div className="cg-view">
     <div className="cg-prompt">
-      Based on context, what does <strong>{exercise.term}</strong> mean?
+      Co oznacza słowo <strong>{exercise.term}</strong> w tym zdaniu?
     </div>
     <div className="cg-sentence">{exercise.contextSentence}</div>
     <div className="mc-options">
@@ -273,9 +284,9 @@ const FillInBlankView: React.FC<{
   onAnswer: (correct: boolean, answer: string) => void;
 }> = ({ exercise, answered, onAnswer }) => (
   <div className="fib-view">
-    <div className="fib-prompt">Fill in the blank:</div>
+    <div className="fib-prompt">Uzupełnij brakujące słowo:</div>
     <div className="fib-sentence">{exercise.sentence}</div>
-    {exercise.hint && <div className="fib-hint">Hint: {exercise.hint}</div>}
+    {exercise.hint && <div className="fib-hint">Podpowiedź: {exercise.hint}</div>}
     <div className="mc-options">
       {exercise.options.map((opt, i) => (
         <button

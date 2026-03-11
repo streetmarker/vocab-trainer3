@@ -183,10 +183,10 @@ body {
 /* ─── Exercise Overlay ───────────────────────────────────────────────────── */
 .exercise-overlay {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  bottom: 0;
+  right: 16px;
   z-index: 9999;
-  width: 380px;
+  width: 360px;
 }
 
 /* ─── Result Toast ───────────────────────────────────────────────────────── */

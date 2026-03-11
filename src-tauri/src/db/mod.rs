@@ -13,13 +13,14 @@ pub struct Word {
     pub id: i64,
     pub term: String,
     pub definition: String,
-    pub part_of_speech: String, // noun, verb, adjective, adverb, etc.
+    pub definition_pl: Option<String>,   // Polish translation / explanation
+    pub part_of_speech: String,
     pub phonetic: Option<String>,
-    pub examples: Vec<String>,       // JSON array stored as text
-    pub synonyms: Vec<String>,       // JSON array stored as text
-    pub antonyms: Vec<String>,       // JSON array stored as text
-    pub tags: Vec<String>,           // JSON array stored as text
-    pub difficulty: i32,             // 1-5 (beginner to advanced)
+    pub examples: Vec<String>,
+    pub synonyms: Vec<String>,
+    pub antonyms: Vec<String>,
+    pub tags: Vec<String>,
+    pub difficulty: i32,
     pub created_at: DateTime<Utc>,
     pub is_active: bool,
 }
@@ -29,43 +30,40 @@ pub struct Word {
 pub struct WordProgress {
     pub id: i64,
     pub word_id: i64,
-    pub easiness_factor: f64, // SM-2 EF, starts at 2.5
-    pub interval_days: f64,   // days until next review
-    pub repetitions: i32,     // successful reviews in a row
+    pub easiness_factor: f64,
+    pub interval_days: f64,
+    pub repetitions: i32,
     pub next_review_at: DateTime<Utc>,
     pub last_review_at: Option<DateTime<Utc>>,
     pub total_reviews: i32,
     pub correct_reviews: i32,
     pub streak: i32,
     pub introduced_at: Option<DateTime<Utc>>,
-    pub session_reviews: i32, // within-session micro-interval counter
+    pub session_reviews: i32,
     pub next_session_review_at: Option<DateTime<Utc>>,
     pub mastery_level: MasteryLevel,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum MasteryLevel {
-    New,
-    Learning,
-    Reviewing,
-    Mastered,
+    New, Learning, Reviewing, Mastered,
 }
 
 impl MasteryLevel {
     pub fn from_str(s: &str) -> Self {
         match s {
-            "learning" => Self::Learning,
+            "learning"  => Self::Learning,
             "reviewing" => Self::Reviewing,
-            "mastered" => Self::Mastered,
-            _ => Self::New,
+            "mastered"  => Self::Mastered,
+            _           => Self::New,
         }
     }
     pub fn as_str(&self) -> &str {
         match self {
-            Self::New => "new",
-            Self::Learning => "learning",
+            Self::New       => "new",
+            Self::Learning  => "learning",
             Self::Reviewing => "reviewing",
-            Self::Mastered => "mastered",
+            Self::Mastered  => "mastered",
         }
     }
 }
@@ -77,7 +75,7 @@ pub struct ExerciseHistory {
     pub word_id: i64,
     pub exercise_type: ExerciseType,
     pub response_time_ms: i64,
-    pub quality: i32,         // SM-2 quality 0-5
+    pub quality: i32,
     pub was_correct: bool,
     pub user_answer: Option<String>,
     pub session_id: String,
@@ -86,39 +84,33 @@ pub struct ExerciseHistory {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ExerciseType {
-    Introduction,
-    MultipleChoice,
-    FillInBlank,
-    ContextualGuess,
-    SpellingCheck,
-    SynonymMatch,
-    DefinitionRecall,
-    TrueFalse,
+    Introduction, MultipleChoice, FillInBlank, ContextualGuess,
+    SpellingCheck, SynonymMatch, DefinitionRecall, TrueFalse,
 }
 
 impl ExerciseType {
     pub fn from_str(s: &str) -> Self {
         match s {
-            "introduction" => Self::Introduction,
-            "multiple_choice" => Self::MultipleChoice,
-            "fill_in_blank" => Self::FillInBlank,
+            "introduction"     => Self::Introduction,
+            "multiple_choice"  => Self::MultipleChoice,
+            "fill_in_blank"    => Self::FillInBlank,
             "contextual_guess" => Self::ContextualGuess,
-            "spelling_check" => Self::SpellingCheck,
-            "synonym_match" => Self::SynonymMatch,
-            "definition_recall" => Self::DefinitionRecall,
-            _ => Self::TrueFalse,
+            "spelling_check"   => Self::SpellingCheck,
+            "synonym_match"    => Self::SynonymMatch,
+            "definition_recall"=> Self::DefinitionRecall,
+            _                  => Self::TrueFalse,
         }
     }
     pub fn as_str(&self) -> &str {
         match self {
-            Self::Introduction => "introduction",
+            Self::Introduction   => "introduction",
             Self::MultipleChoice => "multiple_choice",
-            Self::FillInBlank => "fill_in_blank",
-            Self::ContextualGuess => "contextual_guess",
-            Self::SpellingCheck => "spelling_check",
-            Self::SynonymMatch => "synonym_match",
+            Self::FillInBlank    => "fill_in_blank",
+            Self::ContextualGuess=> "contextual_guess",
+            Self::SpellingCheck  => "spelling_check",
+            Self::SynonymMatch   => "synonym_match",
             Self::DefinitionRecall => "definition_recall",
-            Self::TrueFalse => "true_false",
+            Self::TrueFalse      => "true_false",
         }
     }
 }
@@ -145,18 +137,13 @@ impl Database {
     pub fn new(db_path: PathBuf) -> Result<Self> {
         let conn = Connection::open(&db_path)
             .with_context(|| format!("Failed to open database at {:?}", db_path))?;
-
-        // Performance settings
         conn.execute_batch(
             "PRAGMA journal_mode=WAL;
              PRAGMA synchronous=NORMAL;
              PRAGMA cache_size=10000;
              PRAGMA foreign_keys=ON;",
         )?;
-
-        let db = Self {
-            conn: parking_lot::Mutex::new(conn),
-        };
+        let db = Self { conn: parking_lot::Mutex::new(conn) };
         db.migrate()?;
         Ok(db)
     }
@@ -164,6 +151,10 @@ impl Database {
     fn migrate(&self) -> Result<()> {
         let conn = self.conn.lock();
         conn.execute_batch(SCHEMA_SQL)?;
+        // Non-destructive migration: add definition_pl if missing
+        let _ = conn.execute_batch(
+            "ALTER TABLE word ADD COLUMN definition_pl TEXT;"
+        );
         Ok(())
     }
 
@@ -172,21 +163,17 @@ impl Database {
     pub fn insert_word(&self, word: &Word) -> Result<i64> {
         let conn = self.conn.lock();
         conn.execute(
-            "INSERT INTO word (term, definition, part_of_speech, phonetic, examples,
-             synonyms, antonyms, tags, difficulty, created_at, is_active)
-             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)",
+            "INSERT INTO word (term, definition, definition_pl, part_of_speech, phonetic,
+             examples, synonyms, antonyms, tags, difficulty, created_at, is_active)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
             params![
-                word.term,
-                word.definition,
-                word.part_of_speech,
-                word.phonetic,
+                word.term, word.definition, word.definition_pl,
+                word.part_of_speech, word.phonetic,
                 serde_json::to_string(&word.examples)?,
                 serde_json::to_string(&word.synonyms)?,
                 serde_json::to_string(&word.antonyms)?,
                 serde_json::to_string(&word.tags)?,
-                word.difficulty,
-                word.created_at.to_rfc3339(),
-                word.is_active,
+                word.difficulty, word.created_at.to_rfc3339(), word.is_active,
             ],
         )?;
         Ok(conn.last_insert_rowid())
@@ -195,8 +182,8 @@ impl Database {
     pub fn get_all_words(&self) -> Result<Vec<Word>> {
         let conn = self.conn.lock();
         let mut stmt = conn.prepare(
-            "SELECT id, term, definition, part_of_speech, phonetic, examples,
-             synonyms, antonyms, tags, difficulty, created_at, is_active
+            "SELECT id, term, definition, definition_pl, part_of_speech, phonetic,
+             examples, synonyms, antonyms, tags, difficulty, created_at, is_active
              FROM word WHERE is_active = 1 ORDER BY term",
         )?;
         let words = stmt.query_map([], row_to_word)?.collect::<Result<Vec<_>, _>>()?;
@@ -206,8 +193,8 @@ impl Database {
     pub fn get_word_by_id(&self, id: i64) -> Result<Option<Word>> {
         let conn = self.conn.lock();
         let mut stmt = conn.prepare(
-            "SELECT id, term, definition, part_of_speech, phonetic, examples,
-             synonyms, antonyms, tags, difficulty, created_at, is_active
+            "SELECT id, term, definition, definition_pl, part_of_speech, phonetic,
+             examples, synonyms, antonyms, tags, difficulty, created_at, is_active
              FROM word WHERE id = ?1",
         )?;
         let mut rows = stmt.query_map([id], row_to_word)?;
@@ -217,8 +204,8 @@ impl Database {
     pub fn get_words_for_distractor(&self, exclude_id: i64, limit: usize) -> Result<Vec<Word>> {
         let conn = self.conn.lock();
         let mut stmt = conn.prepare(
-            "SELECT id, term, definition, part_of_speech, phonetic, examples,
-             synonyms, antonyms, tags, difficulty, created_at, is_active
+            "SELECT id, term, definition, definition_pl, part_of_speech, phonetic,
+             examples, synonyms, antonyms, tags, difficulty, created_at, is_active
              FROM word WHERE id != ?1 AND is_active = 1
              ORDER BY RANDOM() LIMIT ?2",
         )?;
@@ -245,15 +232,10 @@ impl Database {
                  streak, introduced_at, session_reviews, next_session_review_at, mastery_level
                  FROM word_progress WHERE word_id = ?1",
             )?;
-            let result = stmt.query_map([word_id], row_to_progress)?
-                .next()
-                .transpose()?;
+            let result = stmt.query_map([word_id], row_to_progress)?.next().transpose()?;
             result
         };
-
-        if let Some(p) = existing {
-            return Ok(p);
-        }
+        if let Some(p) = existing { return Ok(p); }
 
         let now = Utc::now().to_rfc3339();
         conn.execute(
@@ -263,22 +245,11 @@ impl Database {
             params![word_id, now],
         )?;
         let id = conn.last_insert_rowid();
-
         Ok(WordProgress {
-            id,
-            word_id,
-            easiness_factor: 2.5,
-            interval_days: 0.0,
-            repetitions: 0,
-            next_review_at: Utc::now(),
-            last_review_at: None,
-            total_reviews: 0,
-            correct_reviews: 0,
-            streak: 0,
-            introduced_at: None,
-            session_reviews: 0,
-            next_session_review_at: None,
-            mastery_level: MasteryLevel::New,
+            id, word_id, easiness_factor: 2.5, interval_days: 0.0, repetitions: 0,
+            next_review_at: Utc::now(), last_review_at: None, total_reviews: 0,
+            correct_reviews: 0, streak: 0, introduced_at: None, session_reviews: 0,
+            next_session_review_at: None, mastery_level: MasteryLevel::New,
         })
     }
 
@@ -292,19 +263,14 @@ impl Database {
              session_reviews=?10, next_session_review_at=?11, mastery_level=?12
              WHERE id=?13",
             params![
-                progress.easiness_factor,
-                progress.interval_days,
-                progress.repetitions,
+                progress.easiness_factor, progress.interval_days, progress.repetitions,
                 progress.next_review_at.to_rfc3339(),
                 progress.last_review_at.map(|d| d.to_rfc3339()),
-                progress.total_reviews,
-                progress.correct_reviews,
-                progress.streak,
+                progress.total_reviews, progress.correct_reviews, progress.streak,
                 progress.introduced_at.map(|d| d.to_rfc3339()),
                 progress.session_reviews,
                 progress.next_session_review_at.map(|d| d.to_rfc3339()),
-                progress.mastery_level.as_str(),
-                progress.id,
+                progress.mastery_level.as_str(), progress.id,
             ],
         )?;
         Ok(())
@@ -314,7 +280,7 @@ impl Database {
         let conn = self.conn.lock();
         let now = Utc::now().to_rfc3339();
         let mut stmt = conn.prepare(
-            "SELECT w.id, w.term, w.definition, w.part_of_speech, w.phonetic,
+            "SELECT w.id, w.term, w.definition, w.definition_pl, w.part_of_speech, w.phonetic,
              w.examples, w.synonyms, w.antonyms, w.tags, w.difficulty, w.created_at, w.is_active,
              p.id, p.word_id, p.easiness_factor, p.interval_days, p.repetitions,
              p.next_review_at, p.last_review_at, p.total_reviews, p.correct_reviews,
@@ -324,57 +290,33 @@ impl Database {
              WHERE w.is_active = 1 AND p.next_review_at <= ?1
              ORDER BY p.next_review_at ASC",
         )?;
-        let pairs = stmt
-            .query_map([now], |row| {
-                // We can't easily call the helper here due to column offset, so inline it
-                let word = Word {
-                    id: row.get(0)?,
-                    term: row.get(1)?,
-                    definition: row.get(2)?,
-                    part_of_speech: row.get(3)?,
-                    phonetic: row.get(4)?,
-                    examples: serde_json::from_str(&row.get::<_, String>(5)?).unwrap_or_default(),
-                    synonyms: serde_json::from_str(&row.get::<_, String>(6)?).unwrap_or_default(),
-                    antonyms: serde_json::from_str(&row.get::<_, String>(7)?).unwrap_or_default(),
-                    tags: serde_json::from_str(&row.get::<_, String>(8)?).unwrap_or_default(),
-                    difficulty: row.get(9)?,
-                    created_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(10)?)
-                        .unwrap()
-                        .with_timezone(&Utc),
-                    is_active: row.get(11)?,
-                };
-                let progress = WordProgress {
-                    id: row.get(12)?,
-                    word_id: row.get(13)?,
-                    easiness_factor: row.get(14)?,
-                    interval_days: row.get(15)?,
-                    repetitions: row.get(16)?,
-                    next_review_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(17)?)
-                        .unwrap()
-                        .with_timezone(&Utc),
-                    last_review_at: row
-                        .get::<_, Option<String>>(18)?
-                        .and_then(|s| DateTime::parse_from_rfc3339(&s).ok())
-                        .map(|d| d.with_timezone(&Utc)),
-                    total_reviews: row.get(19)?,
-                    correct_reviews: row.get(20)?,
-                    streak: row.get(21)?,
-                    introduced_at: row
-                        .get::<_, Option<String>>(22)?
-                        .and_then(|s| DateTime::parse_from_rfc3339(&s).ok())
-                        .map(|d| d.with_timezone(&Utc)),
-                    session_reviews: row.get(23)?,
-                    next_session_review_at: row
-                        .get::<_, Option<String>>(24)?
-                        .and_then(|s| DateTime::parse_from_rfc3339(&s).ok())
-                        .map(|d| d.with_timezone(&Utc)),
-                    mastery_level: MasteryLevel::from_str(
-                        &row.get::<_, String>(25).unwrap_or_default(),
-                    ),
-                };
-                Ok((word, progress))
-            })?
-            .collect::<Result<Vec<_>, _>>()?;
+        let pairs = stmt.query_map([now], |row| {
+            let word = Word {
+                id: row.get(0)?, term: row.get(1)?, definition: row.get(2)?,
+                definition_pl: row.get(3)?, part_of_speech: row.get(4)?,
+                phonetic: row.get(5)?,
+                examples: serde_json::from_str(&row.get::<_, String>(6)?).unwrap_or_default(),
+                synonyms: serde_json::from_str(&row.get::<_, String>(7)?).unwrap_or_default(),
+                antonyms: serde_json::from_str(&row.get::<_, String>(8)?).unwrap_or_default(),
+                tags:     serde_json::from_str(&row.get::<_, String>(9)?).unwrap_or_default(),
+                difficulty: row.get(10)?,
+                created_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(11)?).unwrap().with_timezone(&Utc),
+                is_active: row.get(12)?,
+            };
+            let progress = WordProgress {
+                id: row.get(13)?, word_id: row.get(14)?,
+                easiness_factor: row.get(15)?, interval_days: row.get(16)?,
+                repetitions: row.get(17)?,
+                next_review_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(18)?).unwrap().with_timezone(&Utc),
+                last_review_at: row.get::<_, Option<String>>(19)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
+                total_reviews: row.get(20)?, correct_reviews: row.get(21)?, streak: row.get(22)?,
+                introduced_at: row.get::<_, Option<String>>(23)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
+                session_reviews: row.get(24)?,
+                next_session_review_at: row.get::<_, Option<String>>(25)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
+                mastery_level: MasteryLevel::from_str(&row.get::<_, String>(26).unwrap_or_default()),
+            };
+            Ok((word, progress))
+        })?.collect::<Result<Vec<_>, _>>()?;
         Ok(pairs)
     }
 
@@ -388,13 +330,8 @@ impl Database {
              user_answer, session_id, completed_at)
              VALUES (?1,?2,?3,?4,?5,?6,?7,?8)",
             params![
-                ex.word_id,
-                ex.exercise_type.as_str(),
-                ex.response_time_ms,
-                ex.quality,
-                ex.was_correct,
-                ex.user_answer,
-                ex.session_id,
+                ex.word_id, ex.exercise_type.as_str(), ex.response_time_ms,
+                ex.quality, ex.was_correct, ex.user_answer, ex.session_id,
                 ex.completed_at.to_rfc3339(),
             ],
         )?;
@@ -404,56 +341,35 @@ impl Database {
     pub fn get_daily_stats(&self, days: i32) -> Result<Vec<DailyStats>> {
         let conn = self.conn.lock();
         let mut stmt = conn.prepare(
-            "SELECT
-               date(completed_at) as day,
+            "SELECT date(completed_at) as day,
                COUNT(*) as total,
                SUM(CASE WHEN was_correct THEN 1 ELSE 0 END) as correct,
                COUNT(DISTINCT word_id) as words,
                SUM(response_time_ms) as total_ms
              FROM exercise_history
              WHERE completed_at >= date('now', ?1)
-             GROUP BY day
-             ORDER BY day",
+             GROUP BY day ORDER BY day",
         )?;
-        let stats = stmt
-            .query_map([format!("-{} days", days)], |row| {
-                Ok(DailyStats {
-                    date: row.get(0)?,
-                    exercises_completed: row.get(1)?,
-                    correct_answers: row.get(2)?,
-                    words_reviewed: row.get(3)?,
-                    words_mastered: 0,
-                    total_time_ms: row.get(4)?,
-                    streak_days: 0,
-                })
-            })?
-            .collect::<Result<Vec<_>, _>>()?;
+        let stats = stmt.query_map([format!("-{} days", days)], |row| {
+            Ok(DailyStats {
+                date: row.get(0)?, exercises_completed: row.get(1)?,
+                correct_answers: row.get(2)?, words_reviewed: row.get(3)?,
+                words_mastered: 0, total_time_ms: row.get(4)?, streak_days: 0,
+            })
+        })?.collect::<Result<Vec<_>, _>>()?;
         Ok(stats)
     }
 
     pub fn get_overall_stats(&self) -> Result<serde_json::Value> {
         let conn = self.conn.lock();
-        let total_words: i32 =
-            conn.query_row("SELECT COUNT(*) FROM word WHERE is_active=1", [], |r| r.get(0))?;
-        let mastered: i32 = conn.query_row(
-            "SELECT COUNT(*) FROM word_progress WHERE mastery_level='mastered'",
-            [],
-            |r| r.get(0),
-        )?;
-        let total_exercises: i32 =
-            conn.query_row("SELECT COUNT(*) FROM exercise_history", [], |r| r.get(0))?;
-        let correct: i32 = conn.query_row(
-            "SELECT COUNT(*) FROM exercise_history WHERE was_correct=1",
-            [],
-            |r| r.get(0),
-        )?;
+        let total_words: i32 = conn.query_row("SELECT COUNT(*) FROM word WHERE is_active=1", [], |r| r.get(0))?;
+        let mastered: i32 = conn.query_row("SELECT COUNT(*) FROM word_progress WHERE mastery_level='mastered'", [], |r| r.get(0))?;
+        let total_exercises: i32 = conn.query_row("SELECT COUNT(*) FROM exercise_history", [], |r| r.get(0))?;
+        let correct: i32 = conn.query_row("SELECT COUNT(*) FROM exercise_history WHERE was_correct=1", [], |r| r.get(0))?;
         let streak: i32 = self.calculate_streak(&conn)?;
-
         Ok(serde_json::json!({
-            "totalWords": total_words,
-            "masteredWords": mastered,
-            "totalExercises": total_exercises,
-            "correctAnswers": correct,
+            "totalWords": total_words, "masteredWords": mastered,
+            "totalExercises": total_exercises, "correctAnswers": correct,
             "accuracyPercent": if total_exercises > 0 { correct * 100 / total_exercises } else { 0 },
             "currentStreak": streak,
         }))
@@ -461,47 +377,34 @@ impl Database {
 
     fn calculate_streak(&self, conn: &Connection) -> Result<i32> {
         let mut stmt = conn.prepare(
-            "SELECT DISTINCT date(completed_at) as day
-             FROM exercise_history
+            "SELECT DISTINCT date(completed_at) as day FROM exercise_history
              ORDER BY day DESC LIMIT 365",
         )?;
-        let days: Vec<String> = stmt
-            .query_map([], |r| r.get(0))?
-            .filter_map(|r| r.ok())
-            .collect();
-
+        let days: Vec<String> = stmt.query_map([], |r| r.get(0))?.filter_map(|r| r.ok()).collect();
         let mut streak = 0i32;
         let today = chrono::Local::now().format("%Y-%m-%d").to_string();
         let mut expected = today.clone();
-
         for day in &days {
             if *day == expected {
                 streak += 1;
-                // compute previous day
                 let d = chrono::NaiveDate::parse_from_str(&expected, "%Y-%m-%d").unwrap();
                 expected = (d - chrono::Duration::days(1)).format("%Y-%m-%d").to_string();
-            } else {
-                break;
-            }
+            } else { break; }
         }
         Ok(streak)
     }
 
     pub fn get_session_word(&self) -> Result<Option<(Word, WordProgress)>> {
         let conn = self.conn.lock();
-        // Pick the word that's been in "learning" state the longest or is new
         let row = conn.query_row(
             "SELECT w.id FROM word w
              LEFT JOIN word_progress p ON w.id = p.word_id
              WHERE w.is_active = 1
              ORDER BY
                CASE WHEN p.mastery_level IS NULL OR p.mastery_level = 'new' THEN 0
-                    WHEN p.mastery_level = 'learning' THEN 1
-                    ELSE 2 END ASC,
-               RANDOM()
-             LIMIT 1",
-            [],
-            |r| r.get::<_, i64>(0),
+                    WHEN p.mastery_level = 'learning' THEN 1 ELSE 2 END ASC,
+               RANDOM() LIMIT 1",
+            [], |r| r.get::<_, i64>(0),
         );
         match row {
             Ok(word_id) => {
@@ -510,9 +413,7 @@ impl Database {
                 if let Some(w) = word {
                     let progress = self.get_or_create_progress(w.id)?;
                     Ok(Some((w, progress)))
-                } else {
-                    Ok(None)
-                }
+                } else { Ok(None) }
             }
             Err(_) => Ok(None),
         }
@@ -523,49 +424,29 @@ impl Database {
 
 fn row_to_word(row: &rusqlite::Row) -> rusqlite::Result<Word> {
     Ok(Word {
-        id: row.get(0)?,
-        term: row.get(1)?,
-        definition: row.get(2)?,
-        part_of_speech: row.get(3)?,
-        phonetic: row.get(4)?,
-        examples: serde_json::from_str(&row.get::<_, String>(5)?).unwrap_or_default(),
-        synonyms: serde_json::from_str(&row.get::<_, String>(6)?).unwrap_or_default(),
-        antonyms: serde_json::from_str(&row.get::<_, String>(7)?).unwrap_or_default(),
-        tags: serde_json::from_str(&row.get::<_, String>(8)?).unwrap_or_default(),
-        difficulty: row.get(9)?,
-        created_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(10)?)
-            .unwrap()
-            .with_timezone(&Utc),
-        is_active: row.get(11)?,
+        id: row.get(0)?, term: row.get(1)?, definition: row.get(2)?,
+        definition_pl: row.get(3)?, part_of_speech: row.get(4)?,
+        phonetic: row.get(5)?,
+        examples: serde_json::from_str(&row.get::<_, String>(6)?).unwrap_or_default(),
+        synonyms: serde_json::from_str(&row.get::<_, String>(7)?).unwrap_or_default(),
+        antonyms: serde_json::from_str(&row.get::<_, String>(8)?).unwrap_or_default(),
+        tags:     serde_json::from_str(&row.get::<_, String>(9)?).unwrap_or_default(),
+        difficulty: row.get(10)?,
+        created_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(11)?).unwrap().with_timezone(&Utc),
+        is_active: row.get(12)?,
     })
 }
 
 fn row_to_progress(row: &rusqlite::Row) -> rusqlite::Result<WordProgress> {
     Ok(WordProgress {
-        id: row.get(0)?,
-        word_id: row.get(1)?,
-        easiness_factor: row.get(2)?,
-        interval_days: row.get(3)?,
-        repetitions: row.get(4)?,
-        next_review_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?)
-            .unwrap()
-            .with_timezone(&Utc),
-        last_review_at: row
-            .get::<_, Option<String>>(6)?
-            .and_then(|s| DateTime::parse_from_rfc3339(&s).ok())
-            .map(|d| d.with_timezone(&Utc)),
-        total_reviews: row.get(7)?,
-        correct_reviews: row.get(8)?,
-        streak: row.get(9)?,
-        introduced_at: row
-            .get::<_, Option<String>>(10)?
-            .and_then(|s| DateTime::parse_from_rfc3339(&s).ok())
-            .map(|d| d.with_timezone(&Utc)),
+        id: row.get(0)?, word_id: row.get(1)?,
+        easiness_factor: row.get(2)?, interval_days: row.get(3)?, repetitions: row.get(4)?,
+        next_review_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?).unwrap().with_timezone(&Utc),
+        last_review_at: row.get::<_, Option<String>>(6)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
+        total_reviews: row.get(7)?, correct_reviews: row.get(8)?, streak: row.get(9)?,
+        introduced_at: row.get::<_, Option<String>>(10)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
         session_reviews: row.get(11)?,
-        next_session_review_at: row
-            .get::<_, Option<String>>(12)?
-            .and_then(|s| DateTime::parse_from_rfc3339(&s).ok())
-            .map(|d| d.with_timezone(&Utc)),
+        next_session_review_at: row.get::<_, Option<String>>(12)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
         mastery_level: MasteryLevel::from_str(&row.get::<_, String>(13).unwrap_or_default()),
     })
 }
@@ -577,6 +458,7 @@ CREATE TABLE IF NOT EXISTS word (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     term            TEXT NOT NULL UNIQUE,
     definition      TEXT NOT NULL,
+    definition_pl   TEXT,
     part_of_speech  TEXT NOT NULL DEFAULT 'noun',
     phonetic        TEXT,
     examples        TEXT NOT NULL DEFAULT '[]',

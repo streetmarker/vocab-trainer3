@@ -270,3 +270,42 @@
   from { opacity: 0; }
   to   { opacity: 1; }
 }
+
+/* ─── Polish definition in list rows ─────────────────────────────── */
+.vm-def-pl-preview {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  color: #6a748a;
+  margin-top: 3px;
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.vm-def-pl-preview .pl-flag { font-style: normal; flex-shrink: 0; }
+
+/* ─── Page header (reuse dashboard style) ──────────────────────────── */
+.dash-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.dash-title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0;
+  background: linear-gradient(135deg, #fff 0%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.dash-subtitle {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 4px 0 0;
+}

@@ -1,110 +1,78 @@
 // src/components/Dashboard/Dashboard.tsx
 import React, { useEffect, useState } from "react";
-import type { OverallStats, DailyStats, ActivityDay, Word } from "../../types";
-import { DIFFICULTY_LABELS } from "../../types";
-// MASTERY_COLORS
+import type { OverallStats, ActivityDay, Word } from "../../types";
+import { DIFFICULTY_LABELS, DIFFICULTY_COLORS, PART_OF_SPEECH_LABELS } from "../../types";
 import { api } from "../../hooks/useTauri";
 import "./Dashboard.css";
 
 export const Dashboard: React.FC = () => {
-  const [stats, setStats] = useState<OverallStats | null>(null);
-  const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
+  const [stats, setStats]       = useState<OverallStats | null>(null);
   const [activity, setActivity] = useState<ActivityDay[]>([]);
-  const [words, setWords] = useState<Word[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [words, setWords]       = useState<Word[]>([]);
+  const [loading, setLoading]   = useState(true);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const [s, d, a, w] = await Promise.all([
-          api.getOverallStats(),
-          api.getDailyStats(14),
-          api.getActivityGrid(),
-          api.getWords(),
-        ]);
-        setStats(s);
-        setDailyStats(d);
-        setActivity(a);
-        setWords(w);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+    Promise.all([
+      api.getOverallStats(),
+      api.getActivityGrid(),
+      api.getWords(),
+    ]).then(([s, a, w]) => {
+      setStats(s); setActivity(a); setWords(w); setLoading(false);
+    }).catch(console.error);
   }, []);
 
-  if (loading) return <div className="dash-loading"><div className="spinner" /></div>;
-
-  // const masteryBreakdown = words.reduce((acc, w) => {
-  //   // We'd need progress for this; mock for now
-  //   return acc;
-  // }, {} as Record<string, number>);
+  if (loading) return (
+    <div className="dash-loading">
+      <div className="spinner" />
+    </div>
+  );
 
   return (
     <div className="dashboard">
-      {/* ── Header ─────────────────────────────────────────────────────── */}
+
+      {/* Header */}
       <div className="dash-header">
         <div>
-          <h1 className="dash-title">Learning Dashboard</h1>
-          <p className="dash-subtitle">
-            {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-          </p>
+          <h1 className="dash-title">Panel główny</h1>
+          <p className="dash-subtitle">Twoje postępy w nauce angielskiego</p>
         </div>
-        <StreakBadge streak={stats?.currentStreak ?? 0} />
+        {stats && (
+          <div className="streak-badge">
+            <span className="streak-fire">🔥</span>
+            <span className="streak-count">{stats.currentStreak}</span>
+            <span className="streak-label">dni z rzędu</span>
+          </div>
+        )}
       </div>
 
-      {/* ── Stats Grid ─────────────────────────────────────────────────── */}
+      {/* Stat cards */}
       {stats && (
         <div className="stats-grid">
-          <StatCard
-            label="Total Words"
-            value={stats.totalWords}
-            icon="📖"
-            color="#6c63ff"
-          />
-          <StatCard
-            label="Mastered"
-            value={stats.masteredWords}
-            icon="🏆"
-            color="#10b981"
-            sub={`${stats.totalWords > 0 ? Math.round(stats.masteredWords / stats.totalWords * 100) : 0}% of library`}
-          />
-          <StatCard
-            label="Exercises Done"
-            value={stats.totalExercises}
-            icon="⚡"
-            color="#f59e0b"
-          />
-          <StatCard
-            label="Accuracy"
-            value={`${stats.accuracyPercent}%`}
-            icon="🎯"
-            color="#3b82f6"
-            sub={`${stats.correctAnswers} / ${stats.totalExercises} correct`}
-          />
+          <StatCard label="Słowa w bazie"  value={stats.totalWords}      icon="📚" color="#6c63ff" sub="aktywnych słów" />
+          <StatCard label="Opanowane"      value={stats.masteredWords}   icon="🏆" color="#10b981" sub="w pełni przyswojone" />
+          <StatCard label="Ćwiczenia"      value={stats.totalExercises}  icon="✏️" color="#3b82f6" sub="łącznie wykonanych" />
+          <StatCard label="Skuteczność"    value={`${stats.accuracyPercent}%`} icon="🎯" color="#f59e0b" sub="poprawnych odpowiedzi" />
         </div>
       )}
 
-      {/* ── Activity Heatmap ─────────────────────────────────────────── */}
+      {/* Activity heatmap */}
       <div className="dash-section">
-        <h2 className="section-title">Activity (last 365 days)</h2>
+        <h2 className="section-title">Aktywność (ostatni rok)</h2>
         <ActivityHeatmap data={activity} />
       </div>
 
-      {/* ── Last 14 days bar chart ────────────────────────────────────── */}
+      {/* Word list */}
       <div className="dash-section">
-        <h2 className="section-title">Daily Exercises</h2>
-        <DailyChart data={dailyStats} />
-      </div>
-
-      {/* ── Word Library Breakdown ────────────────────────────────────── */}
-      <div className="dash-section">
-        <h2 className="section-title">Your Vocabulary ({words.length} words)</h2>
-        <div className="word-grid">
-          {words.slice(0, 12).map((w) => (
-            <WordCard key={w.id} word={w} />
-          ))}
-        </div>
+        <h2 className="section-title">Twoje słowa ({words.length})</h2>
+        {words.length === 0 ? (
+          <div className="empty-chart">
+            Brak słów. Przejdź do <strong>Słownictwo</strong> aby dodać pierwsze słowa lub załadować przykładowe.
+          </div>
+        ) : (
+          <div className="word-grid">
+            {words.map((w) => <WordCard key={w.id} word={w} />)}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -112,100 +80,53 @@ export const Dashboard: React.FC = () => {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-const StatCard: React.FC<{
-  label: string;
-  value: string | number;
-  icon: string;
-  color: string;
-  sub?: string;
-}> = ({ label, value, icon, color, sub }) => (
-  <div className="stat-card" style={{ "--accent": color } as React.CSSProperties}>
-    <div className="stat-icon">{icon}</div>
-    <div className="stat-value">{value}</div>
-    <div className="stat-label">{label}</div>
-    {sub && <div className="stat-sub">{sub}</div>}
-  </div>
-);
-
-const StreakBadge: React.FC<{ streak: number }> = ({ streak }) => (
-  <div className="streak-badge">
-    <span className="streak-fire">🔥</span>
-    <span className="streak-count">{streak}</span>
-    <span className="streak-label">day streak</span>
-  </div>
-);
+const StatCard: React.FC<{ label: string; value: string | number; icon: string; color: string; sub: string }> =
+  ({ label, value, icon, color, sub }) => (
+    <div className="stat-card" style={{ "--accent": color } as React.CSSProperties}>
+      <span className="stat-icon">{icon}</span>
+      <span className="stat-value" style={{ color }}>{value}</span>
+      <span className="stat-label">{label}</span>
+      <span className="stat-sub">{sub}</span>
+    </div>
+  );
 
 const ActivityHeatmap: React.FC<{ data: ActivityDay[] }> = ({ data }) => {
+  const byDate = new Map(data.map((d) => [d.date, d]));
   const today = new Date();
-  const weeks: (ActivityDay | null)[][] = [];
+  const start = new Date(today);
+  start.setDate(today.getDate() - 364);
 
-  // Build a 52-week grid
-  for (let w = 51; w >= 0; w--) {
-    const week: (ActivityDay | null)[] = [];
-    for (let d = 6; d >= 0; d--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - (w * 7 + d));
-      const dateStr = date.toISOString().split("T")[0];
-      const day = data.find((a) => a.date === dateStr) ?? null;
-      week.push(day ? { ...day, date: dateStr } : null);
-    }
-    weeks.push(week);
+  const weeks: (ActivityDay | null)[][] = [];
+  let week: (ActivityDay | null)[] = Array(start.getDay()).fill(null);
+
+  for (let d = new Date(start); d <= today; d.setDate(d.getDate() + 1)) {
+    const key = d.toISOString().slice(0, 10);
+    week.push(byDate.get(key) ?? { date: key, count: 0, correct: 0 });
+    if (d.getDay() === 6) { weeks.push(week); week = []; }
   }
+  if (week.length) weeks.push(week);
 
   const maxCount = Math.max(...data.map((d) => d.count), 1);
-
-  const getCellColor = (day: ActivityDay | null) => {
-    if (!day || day.count === 0) return "var(--cell-empty)";
-    const intensity = day.count / maxCount;
-    if (intensity < 0.25) return "#312e81";
-    if (intensity < 0.5)  return "#4c1d95";
-    if (intensity < 0.75) return "#6c63ff";
-    return "#a78bfa";
-  };
 
   return (
     <div className="heatmap">
       {weeks.map((week, wi) => (
         <div key={wi} className="heatmap-week">
-          {week.map((day, di) => (
-            <div
-              key={di}
-              className="heatmap-cell"
-              style={{ background: getCellColor(day) }}
-              title={day ? `${day.date}: ${day.count} exercises` : "No activity"}
-            />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-};
-
-const DailyChart: React.FC<{ data: DailyStats[] }> = ({ data }) => {
-  if (data.length === 0) {
-    return <div className="empty-chart">No data yet — complete some exercises!</div>;
-  }
-  const max = Math.max(...data.map((d) => d.exercisesCompleted), 1);
-
-  return (
-    <div className="daily-chart">
-      {data.map((d, i) => (
-        <div key={i} className="bar-group">
-          <div className="bar-wrap">
-            <div
-              className="bar"
-              style={{ height: `${(d.exercisesCompleted / max) * 100}%` }}
-              title={`${d.exercisesCompleted} exercises, ${d.correctAnswers} correct`}
-            >
+          {week.map((day, di) =>
+            day ? (
               <div
-                className="bar-correct"
-                style={{ height: `${d.exercisesCompleted > 0 ? (d.correctAnswers / d.exercisesCompleted) * 100 : 0}%` }}
+                key={di}
+                className="heatmap-cell"
+                style={{
+                  background: "#6c63ff",
+                  opacity: day.count === 0 ? 0.07 : 0.2 + 0.8 * (day.count / maxCount),
+                }}
+                title={`${day.date}: ${day.count} ćwiczeń`}
               />
-            </div>
-          </div>
-          <div className="bar-label">
-            {new Date(d.date).toLocaleDateString("en-US", { month: "numeric", day: "numeric" })}
-          </div>
+            ) : (
+              <div key={di} className="heatmap-cell" style={{ background: "transparent" }} />
+            )
+          )}
         </div>
       ))}
     </div>
@@ -214,14 +135,17 @@ const DailyChart: React.FC<{ data: DailyStats[] }> = ({ data }) => {
 
 const WordCard: React.FC<{ word: Word }> = ({ word }) => (
   <div className="word-card">
-    <div className="wc-term">{word.term}</div>
-    <div className="wc-pos">{word.partOfSpeech}</div>
-    <div className="wc-def">{word.definition.slice(0, 60)}{word.definition.length > 60 ? "…" : ""}</div>
+    <span className="wc-term">{word.term}</span>
+    <span className="wc-pos">{PART_OF_SPEECH_LABELS[word.partOfSpeech] ?? word.partOfSpeech}</span>
+    <span className="wc-def">{word.definition}</span>
+    {word.definitionPl && (
+      <div className="word-card-pl">
+        <span className="pl-flag">🇵🇱</span>
+        {word.definitionPl}
+      </div>
+    )}
     <div className="wc-footer">
-      <span
-        className="wc-difficulty"
-        style={{ color: ["#22c55e", "#84cc16", "#eab308", "#f97316", "#ef4444"][word.difficulty - 1] }}
-      >
+      <span className="wc-difficulty" style={{ color: DIFFICULTY_COLORS[word.difficulty] }}>
         {DIFFICULTY_LABELS[word.difficulty]}
       </span>
     </div>

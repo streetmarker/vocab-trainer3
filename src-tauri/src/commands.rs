@@ -71,6 +71,7 @@ pub async fn get_words(state: State<'_, AppState>) -> Result<Vec<Word>, String> 
 pub async fn add_word(
     term: String,
     definition: String,
+    definition_pl: Option<String>,
     part_of_speech: String,
     phonetic: Option<String>,
     examples: Vec<String>,
@@ -84,6 +85,7 @@ pub async fn add_word(
         id: 0,
         term,
         definition,
+        definition_pl,
         part_of_speech,
         phonetic,
         examples,
@@ -173,6 +175,7 @@ fn sample_words() -> Vec<Word> {
         Word {
             id: 0, term: "ephemeral".to_string(),
             definition: "Lasting for a very short time; transitory".to_string(),
+            definition_pl: Some("Krótkotrwały, nietrwały, przemijający — istniejący tylko przez chwilę".to_string()),
             part_of_speech: "adjective".to_string(),
             phonetic: Some("/ɪˈfem.ər.əl/".to_string()),
             examples: vec!["The ephemeral beauty of cherry blossoms makes them all the more precious.".to_string()],
@@ -183,6 +186,7 @@ fn sample_words() -> Vec<Word> {
         Word {
             id: 0, term: "ubiquitous".to_string(),
             definition: "Present, appearing, or found everywhere".to_string(),
+            definition_pl: Some("Wszechobecny, spotykany wszędzie — coś, co jest w każdym miejscu jednocześnie".to_string()),
             part_of_speech: "adjective".to_string(),
             phonetic: Some("/juːˈbɪk.wɪ.təs/".to_string()),
             examples: vec!["Smartphones have become ubiquitous in modern society.".to_string()],
@@ -193,6 +197,7 @@ fn sample_words() -> Vec<Word> {
         Word {
             id: 0, term: "serendipity".to_string(),
             definition: "The occurrence of fortunate events by accident or chance".to_string(),
+            definition_pl: Some("Szczęśliwy przypadek — odkrycie czegoś wartościowego przez zrządzenie losu, bez szukania".to_string()),
             part_of_speech: "noun".to_string(),
             phonetic: Some("/ˌser.ənˈdɪp.ɪ.ti/".to_string()),
             examples: vec!["It was pure serendipity that they met at the coffee shop that day.".to_string()],
@@ -203,6 +208,7 @@ fn sample_words() -> Vec<Word> {
         Word {
             id: 0, term: "perspicacious".to_string(),
             definition: "Having a ready insight into things; shrewd".to_string(),
+            definition_pl: Some("Przenikliwy, bystrzy — ktoś, kto szybko rozumie i trafnie ocenia sytuacje".to_string()),
             part_of_speech: "adjective".to_string(),
             phonetic: Some("/ˌpɜːr.spɪˈkeɪ.ʃəs/".to_string()),
             examples: vec!["The perspicacious investor saw the company's potential before anyone else.".to_string()],
@@ -213,6 +219,7 @@ fn sample_words() -> Vec<Word> {
         Word {
             id: 0, term: "mellifluous".to_string(),
             definition: "Sweet or musical; pleasant to hear".to_string(),
+            definition_pl: Some("Melodyjny, słodki w brzmieniu — dźwięk lub głos, który przyjemnie brzmi dla uszu".to_string()),
             part_of_speech: "adjective".to_string(),
             phonetic: Some("/məˈlɪf.lu.əs/".to_string()),
             examples: vec!["Her mellifluous voice filled the concert hall with warmth.".to_string()],
@@ -222,7 +229,8 @@ fn sample_words() -> Vec<Word> {
         },
         Word {
             id: 0, term: "pragmatic".to_string(),
-            definition: "Dealing with things sensibly and realistically based on practical considerations".to_string(),
+            definition: "Dealing with things sensibly and realistically".to_string(),
+            definition_pl: Some("Pragmatyczny, praktyczny — skupiony na tym, co działa w rzeczywistości, bez niepotrzebnego idealizmu".to_string()),
             part_of_speech: "adjective".to_string(),
             phonetic: Some("/præɡˈmæt.ɪk/".to_string()),
             examples: vec!["She took a pragmatic approach to solving the budget crisis.".to_string()],
@@ -233,6 +241,7 @@ fn sample_words() -> Vec<Word> {
         Word {
             id: 0, term: "inimical".to_string(),
             definition: "Tending to obstruct or harm; hostile or unfriendly".to_string(),
+            definition_pl: Some("Wrogi, szkodliwy — coś lub ktoś, kto działa przeciwko czemuś lub komuś, utrudniając lub niszcząc".to_string()),
             part_of_speech: "adjective".to_string(),
             phonetic: Some("/ɪˈnɪm.ɪ.kəl/".to_string()),
             examples: vec!["Such policies are inimical to economic growth.".to_string()],
@@ -243,6 +252,7 @@ fn sample_words() -> Vec<Word> {
         Word {
             id: 0, term: "loquacious".to_string(),
             definition: "Tending to talk a great deal; talkative".to_string(),
+            definition_pl: Some("Gadatliwy, wielomówny — osoba, która dużo i chętnie mówi, często za dużo".to_string()),
             part_of_speech: "adjective".to_string(),
             phonetic: Some("/ləʊˈkweɪ.ʃəs/".to_string()),
             examples: vec!["The loquacious professor often ran over time with his lectures.".to_string()],
