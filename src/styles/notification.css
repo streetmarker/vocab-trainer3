@@ -1,0 +1,157 @@
+/* src/styles/notification.css
+ * Styles for the task-notification floating toast window.
+ * html/body transparent styles are applied via JS in main.tsx for
+ * the notification window only — this file is safe to bundle globally.
+ */
+
+/* ── Reset / base ──────────────────────────────────────────────────────────── */
+/* ── Card root ─────────────────────────────────────────────────────────────── */
+.tn-root {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  width: 360px;
+  /* height is content-driven, typically ~155-165px */
+  background: #1e1f26;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+  box-shadow:
+    0 -4px 24px rgba(0, 0, 0, 0.55),
+    0 -1px 0 rgba(255, 255, 255, 0.04) inset;
+  overflow: hidden;
+  cursor: default;
+
+  /* Slide animations */
+  transition: transform var(--slide-dur, 320ms) cubic-bezier(0.22, 1, 0.36, 1),
+              opacity   var(--slide-dur, 320ms) ease;
+}
+
+/* Phases */
+.tn-root--in {
+  transform: translateY(110%);
+  opacity: 0;
+  --slide-dur: 0ms; /* instant initial off-screen placement */
+}
+.tn-root--idle {
+  transform: translateY(0);
+  opacity: 1;
+  --slide-dur: 340ms;
+}
+.tn-root--out {
+  transform: translateY(110%);
+  opacity: 0;
+  --slide-dur: 320ms;
+}
+
+/* ── Progress bar (top) ────────────────────────────────────────────────────── */
+.tn-progress {
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.07);
+  position: relative;
+}
+.tn-progress__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #818cf8);
+  transition: width 60ms linear;
+  border-radius: 0 2px 2px 0;
+}
+
+/* ── Header row ────────────────────────────────────────────────────────────── */
+.tn-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 12px 4px;
+}
+.tn-icon {
+  font-size: 15px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.tn-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: #f0f0f4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.01em;
+}
+.tn-close {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 120ms, color 120ms;
+  padding: 0;
+}
+.tn-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* ── Description ───────────────────────────────────────────────────────────── */
+.tn-desc {
+  padding: 2px 12px 10px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.5;
+  /* Clamp to 2 lines */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* ── Divider ───────────────────────────────────────────────────────────────── */
+.tn-actions {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* ── Buttons ───────────────────────────────────────────────────────────────── */
+.tn-btn {
+  flex: 1;
+  padding: 7px 0;
+  border: none;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 120ms, transform 80ms;
+  letter-spacing: 0.02em;
+}
+.tn-btn:active {
+  transform: scale(0.96);
+}
+
+.tn-btn--later {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.60);
+}
+.tn-btn--later:hover {
+  filter: brightness(1.3);
+}
+
+.tn-btn--ok {
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.40);
+}
+.tn-btn--ok:hover {
+  filter: brightness(1.12);
+}

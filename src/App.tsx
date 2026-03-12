@@ -3,15 +3,13 @@ import React, { useState, useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { Dashboard } from "./components/Dashboard/Dashboard";
 import { VocabManager } from "./components/VocabManager/VocabManager";
-import { ExercisePopup } from "./components/ExercisePopup/ExercisePopup";
-import type { AppRoute, Exercise, AnswerResult } from "./types";
+import type { AppRoute } from "./types";
 import { api } from "./hooks/useTauri";
 import "./styles/global.css";
+import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 export default function App() {
   const [route, setRoute] = useState<AppRoute>("dashboard");
-  const [pendingExercise, setPendingExercise] = useState<Exercise | null>(null);
-  const [showResult, setShowResult] = useState<AnswerResult | null>(null);
 
   // Listen for navigation events from tray menu
   useEffect(() => {
@@ -20,40 +18,6 @@ export default function App() {
     });
     return () => { unlisten.then((f) => f()); };
   }, []);
-
-  // Listen for scheduler-triggered exercises
-  useEffect(() => {
-    const unlisten = listen<{ wordId: number }>("show_exercise", async (e) => {
-      try {
-        const exercise = await api.getExercise(e.payload.wordId);
-        setPendingExercise(exercise);
-      } catch (err) {
-        console.error("Błąd ładowania ćwiczenia:", err);
-      }
-    });
-    return () => { unlisten.then((f) => f()); };
-  }, []);
-
-  // Listen for session start
-  useEffect(() => {
-    const unlisten = listen("session_started", async () => {
-      try {
-        const result = await api.startSession();
-        if (result) {
-          setPendingExercise(result.exercise);
-        }
-      } catch (err) {
-        console.error("Błąd startu sesji:", err);
-      }
-    });
-    return () => { unlisten.then((f) => f()); };
-  }, []);
-
-  const handleExerciseComplete = (result: AnswerResult) => {
-    setShowResult(result);
-    setPendingExercise(null);
-    setTimeout(() => setShowResult(null), 2000);
-  };
 
   const navItems: { id: AppRoute; icon: string; label: string }[] = [
     { id: "dashboard", icon: "📊", label: "Panel główny" },
@@ -92,30 +56,11 @@ export default function App() {
 
       {/* ── Main Content ──────────────────────────────────────────────── */}
       <main className="main-content">
+
         {route === "dashboard" && <Dashboard />}
         {route === "vocab" && <VocabManager />}
         {route === "settings" && <SettingsPage />}
       </main>
-
-      {/* ── Inline Exercise Popup (when triggered) ────────────────────── */}
-      {pendingExercise && (
-        <div className="exercise-overlay">
-          <ExercisePopup
-            exercise={pendingExercise}
-            onComplete={handleExerciseComplete}
-            onDismiss={() => setPendingExercise(null)}
-          />
-        </div>
-      )}
-
-      {/* ── Toast result ──────────────────────────────────────────────── */}
-      {showResult && (
-        <div className={`result-toast ${showResult.wasCorrect ? "correct" : "incorrect"}`}>
-          {showResult.wasCorrect
-            ? `✓ Poprawnie!${showResult.streak > 1 ? ` 🔥 Seria: ${showResult.streak}` : ""}`
-            : `Następna powtórka za ${(showResult.newIntervalDays * 24).toFixed(0)}h`}
-        </div>
-      )}
     </div>
   );
 }

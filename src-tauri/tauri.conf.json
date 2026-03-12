@@ -12,14 +12,42 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "vocab-trainer3",
-        "width": 800,
-        "height": 600
+        "width": 1100,
+        "height": 720,
+        "minWidth": 900,
+        "minHeight": 600,
+        "decorations": true,
+        "visible": false,
+        "center": true,
+        "url": "index.html"
+      },
+      {
+        "label": "popup",
+        "title": "",
+        "width": 360,
+        "height": 480,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "visible": false,
+        "resizable": false,
+        "shadow": false,
+        "x": -2000,
+        "y": -2000,
+        "url": "popup.html"
       }
     ],
+    "trayIcon": {
+      "iconPath": "icons/icon.png",
+      "iconAsTemplate": true
+    },
     "security": {
       "csp": null
-    }
+    },
+    "withGlobalTauri": true
   },
   "bundle": {
     "active": true,
@@ -31,5 +59,6 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
-  }
+  },
+  "plugins": {}
 }

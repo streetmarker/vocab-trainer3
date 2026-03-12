@@ -3,6 +3,8 @@
 // All Tauri commands exposed to the frontend via invoke().
 
 use std::path::PathBuf;
+use std::sync::Mutex;
+use tauri::Manager;
 
 use std::sync::Arc;
 use tauri::State;
@@ -20,6 +22,8 @@ pub struct AppState {
     pub tracker: Arc<ProgressTracker>,
     pub scheduler: Arc<Scheduler>,
     pub data_dir: PathBuf,
+    /// Word queued for the popup window — set before showing the window
+    pub pending_word_id: Mutex<Option<i64>>,
 }
 
 // ─── Exercise Commands ────────────────────────────────────────────────────────
@@ -317,7 +321,108 @@ pub async fn save_settings(
     settings: AppSettings,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
+    // Persist to disk
     let path = settings_path(&state.data_dir);
     let text = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
-    std::fs::write(&path, text).map_err(|e| e.to_string())
+    std::fs::write(&path, text).map_err(|e| e.to_string())?;
+
+    // Apply to running scheduler immediately — no restart required
+    use crate::learning::scheduler::SchedulerConfig;
+    let new_config = SchedulerConfig {
+        idle_threshold_secs: settings.idle_threshold_secs as u64,
+        min_popup_gap_secs:  (settings.min_gap_minutes as u64) * 60,
+        poll_interval_secs:  10,
+        max_daily_exercises: settings.exercises_per_day as i32,
+        work_hours_start:    settings.work_hours_start
+            .split(':').next()
+            .and_then(|h| h.parse().ok())
+            .unwrap_or(8),
+        work_hours_end:      settings.work_hours_end
+            .split(':').next()
+            .and_then(|h| h.parse().ok())
+            .unwrap_or(22),
+    };
+    state.scheduler.update_config(new_config);
+    Ok(())
+}
+
+// ─── Popup Window Control ─────────────────────────────────────────────────────
+
+/// Called by popup window on mount — returns the queued exercise (no race condition)
+#[tauri::command]
+pub async fn get_popup_exercise(state: State<'_, AppState>) -> Result<Option<Exercise>, String> {
+    let word_id = {
+        let pending = state.pending_word_id.lock().map_err(|e| e.to_string())?;
+        *pending
+    };
+    match word_id {
+        Some(id) => state.engine.build_exercise(id).map(Some).map_err(|e| e.to_string()),
+        None => Ok(None),
+    }
+}
+
+/// Called by popup when dismissed/completed — clears pending word and parks window off-screen
+#[tauri::command]
+pub async fn hide_popup(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<(), String> {
+    if let Ok(mut pending) = state.pending_word_id.lock() {
+        *pending = None;
+    }
+    if let Some(win) = app.get_webview_window("popup") {
+        let _ = win.set_position(tauri::PhysicalPosition::new(-2000_i32, -2000_i32));
+    }
+    Ok(())
+}
+
+/// Called from Dashboard "Ćwicz teraz" button — picks next due word and shows popup
+#[tauri::command]
+pub async fn trigger_popup(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<bool, String> {
+    match state.db.get_session_word().map_err(|e| e.to_string())? {
+        Some((word, _)) => {
+            crate::show_popup(&app, word.id);
+            Ok(true)
+        }
+        None => Ok(false),
+    }
+}
+
+/// Returns the word currently queued in the popup (for Dashboard "now practicing" widget)
+#[tauri::command]
+pub async fn get_current_word(state: State<'_, AppState>) -> Result<Option<Word>, String> {
+    let word_id = {
+        let pending = state.pending_word_id.lock().map_err(|e| e.to_string())?;
+        *pending
+    };
+    match word_id {
+        Some(id) => state.db.get_word_by_id(id).map_err(|e| e.to_string()),
+        None => Ok(None),
+    }
+}
+
+// ─── Task Notification Commands ───────────────────────────────────────────────
+
+/// User clicked "Ok" → open full exercise popup, start gap timer now.
+/// Counts toward daily limit since user is actively engaging.
+#[tauri::command]
+pub async fn task_notification_done(
+    word_id: i64,
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    log::info!("task_notification_done: word_id={}", word_id);
+    state.scheduler.record_popup_dismissed(true);
+    crate::show_popup(&app, word_id);
+    Ok(())
+}
+
+/// User clicked "Później" or toast auto-closed → reset gap timer from NOW.
+/// Does NOT count toward daily limit (user didn't actually do an exercise).
+/// Next notification will appear after min_gap_minutes from this moment.
+#[tauri::command]
+pub async fn task_notification_later(
+    word_id: i64,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    log::info!("task_notification_later: word_id={} — gap reset from now", word_id);
+    state.scheduler.record_popup_dismissed(false);
+    Ok(())
 }

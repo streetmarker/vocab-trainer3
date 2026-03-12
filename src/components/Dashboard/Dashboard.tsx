@@ -1,25 +1,38 @@
 // src/components/Dashboard/Dashboard.tsx
 import React, { useEffect, useState } from "react";
 import type { OverallStats, ActivityDay, Word } from "../../types";
-import { DIFFICULTY_LABELS, DIFFICULTY_COLORS, PART_OF_SPEECH_LABELS } from "../../types";
+import { DIFFICULTY_LABELS, DIFFICULTY_COLORS, MASTERY_LABELS, PART_OF_SPEECH_LABELS } from "../../types";
 import { api } from "../../hooks/useTauri";
 import "./Dashboard.css";
 
 export const Dashboard: React.FC = () => {
-  const [stats, setStats]       = useState<OverallStats | null>(null);
-  const [activity, setActivity] = useState<ActivityDay[]>([]);
-  const [words, setWords]       = useState<Word[]>([]);
-  const [loading, setLoading]   = useState(true);
+  const [stats, setStats]           = useState<OverallStats | null>(null);
+  const [activity, setActivity]     = useState<ActivityDay[]>([]);
+  const [words, setWords]           = useState<Word[]>([]);
+  const [currentWord, setCurrentWord] = useState<Word | null>(null);
+  const [loading, setLoading]       = useState(true);
+  const [practicing, setPracticing] = useState(false);
 
   useEffect(() => {
     Promise.all([
       api.getOverallStats(),
       api.getActivityGrid(),
       api.getWords(),
-    ]).then(([s, a, w]) => {
-      setStats(s); setActivity(a); setWords(w); setLoading(false);
+      api.getCurrentWord(),
+    ]).then(([s, a, w, cw]) => {
+      setStats(s); setActivity(a); setWords(w); setCurrentWord(cw); setLoading(false);
     }).catch(console.error);
   }, []);
+
+  const handlePracticeNow = async () => {
+    setPracticing(true);
+    try {
+      const triggered = await api.triggerPopup();
+      if (!triggered) alert("Brak słów do ćwiczenia w tej chwili.");
+    } finally {
+      setPracticing(false);
+    }
+  };
 
   if (loading) return (
     <div className="dash-loading">
@@ -36,14 +49,37 @@ export const Dashboard: React.FC = () => {
           <h1 className="dash-title">Panel główny</h1>
           <p className="dash-subtitle">Twoje postępy w nauce angielskiego</p>
         </div>
-        {stats && (
-          <div className="streak-badge">
-            <span className="streak-fire">🔥</span>
-            <span className="streak-count">{stats.currentStreak}</span>
-            <span className="streak-label">dni z rzędu</span>
-          </div>
-        )}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10 }}>
+          {stats && (
+            <div className="streak-badge">
+              <span className="streak-fire">🔥</span>
+              <span className="streak-count">{stats.currentStreak}</span>
+              <span className="streak-label">dni z rzędu</span>
+            </div>
+          )}
+          <button
+            className="btn-primary"
+            onClick={handlePracticeNow}
+            disabled={practicing}
+            style={{ fontSize: 13 }}
+          >
+            {practicing ? "Ładowanie…" : "▶ Ćwicz teraz"}
+          </button>
+        </div>
       </div>
+
+      {/* Current word widget */}
+      {currentWord && (
+        <div className="current-word-banner">
+          <div className="cw-label">Aktualnie ćwiczone</div>
+          <div className="cw-term">{currentWord.term}</div>
+          {currentWord.phonetic && <div className="cw-phonetic">{currentWord.phonetic}</div>}
+          <div className="cw-def">{currentWord.definition}</div>
+          {currentWord.definitionPl && (
+            <div className="cw-def-pl"><span className="pl-flag">🇵🇱</span>{currentWord.definitionPl}</div>
+          )}
+        </div>
+      )}
 
       {/* Stat cards */}
       {stats && (

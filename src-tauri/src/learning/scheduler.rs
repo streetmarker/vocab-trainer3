@@ -204,20 +204,26 @@ pub fn select_next_exercise(
 // ─── Scheduler ────────────────────────────────────────────────────────────────
 
 pub struct Scheduler {
-    config: SchedulerConfig,
+    config: Arc<RwLock<SchedulerConfig>>,
     state: Arc<RwLock<SchedulerState>>,
     db: Arc<Database>,
     detector: Arc<parking_lot::Mutex<ActivityDetector>>,
+    pub pending_word_id: Arc<parking_lot::Mutex<Option<i64>>>,
 }
 
 impl Scheduler {
     pub fn new(db: Arc<Database>, config: SchedulerConfig, session_id: String) -> Self {
         Self {
-            config,
+            config: Arc::new(RwLock::new(config)),
             state: Arc::new(RwLock::new(SchedulerState::new(session_id))),
             db,
             detector: Arc::new(parking_lot::Mutex::new(ActivityDetector::new())),
+            pending_word_id: Arc::new(parking_lot::Mutex::new(None)),
         }
+    }
+
+    pub fn update_config(&self, config: SchedulerConfig) {
+        *self.config.write() = config;
     }
 
     pub fn state(&self) -> Arc<RwLock<SchedulerState>> {
@@ -225,32 +231,44 @@ impl Scheduler {
     }
 
     pub fn check_conditions(&self) -> PopupConditions {
-        let state = self.state.read();
+        let state  = self.state.read();
+        let config = self.config.read();
         let hour = chrono::Local::now().hour();
         let idle_secs = self.detector.lock().idle_seconds();
         let fullscreen = self.detector.lock().is_fullscreen_active();
 
         let enough_time = state
             .last_popup_at
-            .map(|t| t.elapsed() >= Duration::from_secs(self.config.min_popup_gap_secs))
+            .map(|t| t.elapsed() >= Duration::from_secs(config.min_popup_gap_secs))
             .unwrap_or(true);
 
         PopupConditions {
-            user_is_idle: idle_secs >= self.config.idle_threshold_secs,
+            user_is_idle: idle_secs >= config.idle_threshold_secs,
             no_fullscreen: !fullscreen,
             enough_time_since_last: enough_time,
-            within_work_hours: hour >= self.config.work_hours_start
-                && hour < self.config.work_hours_end,
+            within_work_hours: hour >= config.work_hours_start
+                && hour < config.work_hours_end,
             not_paused: !state.is_paused,
             has_due_exercises: true,
-            under_daily_limit: state.exercises_today < self.config.max_daily_exercises,
+            under_daily_limit: state.exercises_today < config.max_daily_exercises,
         }
     }
 
-    pub fn record_popup_shown(&self) {
+    /// Called when toast is SHOWN — blocks scheduler from firing again while
+    /// the toast is on screen, but does NOT start the gap timer yet.
+    pub fn record_popup_showing(&self) {
+        self.state.write().last_popup_at = Some(Instant::now());
+    }
+
+    /// Called when user DISMISSES the toast (Ok, Później, or auto-close).
+    /// Resets the gap timer from NOW so the next notification is spaced
+    /// correctly from when the user actually interacted, not from when it appeared.
+    pub fn record_popup_dismissed(&self, count_toward_daily: bool) {
         let mut state = self.state.write();
         state.last_popup_at = Some(Instant::now());
-        state.exercises_today += 1;
+        if count_toward_daily {
+            state.exercises_today += 1;
+        }
     }
 
     pub fn set_paused(&self, paused: bool) {
@@ -266,8 +284,8 @@ impl Scheduler {
     }
 
     pub async fn run(self: Arc<Self>, app_handle: tauri::AppHandle) {
-        let poll = Duration::from_secs(self.config.poll_interval_secs);
         loop {
+            let poll = Duration::from_secs(self.config.read().poll_interval_secs);
             time::sleep(poll).await;
 
             let mut conditions = self.check_conditions();
@@ -280,14 +298,12 @@ impl Scheduler {
 
             if conditions.all_met() {
                 if let Ok(Some((word, progress))) = next_exercise {
-                    self.record_popup_shown();
-                    use tauri::Emitter;
-                    let _ = app_handle.emit("show_exercise", serde_json::json!({
-                        "wordId": word.id,
-                        "sessionId": self.state.read().session_id,
-                    }));
+                    // Mark as "showing" to block duplicate fires while toast is visible.
+                    // The gap timer resets on dismissal (record_popup_dismissed).
+                    self.record_popup_showing();
+                    crate::show_task_notification(&app_handle, &word);
                     log::info!(
-                        "Scheduler: showing '{}' (mastery: {:?})",
+                        "Scheduler: toast for '{}' (mastery: {:?})",
                         word.term, progress.mastery_level
                     );
                 }

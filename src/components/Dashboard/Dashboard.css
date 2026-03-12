@@ -233,3 +233,37 @@
 }
 
 .word-card-pl .pl-flag { font-size: 0.9rem; flex-shrink: 0; }
+
+/* ─── Current word banner ────────────────────────────────────────── */
+.current-word-banner {
+  background: linear-gradient(135deg, rgba(108,99,255,0.12), rgba(167,139,250,0.08));
+  border: 1px solid rgba(108,99,255,0.3);
+  border-radius: 14px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+}
+.current-word-banner::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #6c63ff, #a78bfa);
+}
+.cw-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: #a78bfa;
+  font-weight: 700;
+}
+.cw-term  { font-size: 22px; font-weight: 800; color: white; letter-spacing: -0.02em; }
+.cw-phonetic { font-size: 12px; color: #a78bfa; font-style: italic; }
+.cw-def   { font-size: 13px; color: var(--muted); line-height: 1.5; }
+.cw-def-pl {
+  display: flex; align-items: flex-start; gap: 6px;
+  font-size: 12px; color: #6a748a; font-style: italic; margin-top: 2px;
+}

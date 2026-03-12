@@ -82,6 +82,23 @@ export const api = {
     workHoursStart: string;
     workHoursEnd: string;
   }): Promise<void> => invoke("save_settings", { settings }),
+
+  hidePopup: (): Promise<void> => invoke("hide_popup"),
+
+  getPopupExercise: (): Promise<import("./types").Exercise | null> =>
+    invoke("get_popup_exercise"),
+
+  triggerPopup: (): Promise<boolean> =>
+    invoke("trigger_popup"),
+
+  getCurrentWord: (): Promise<import("./types").Word | null> =>
+    invoke("get_current_word"),
+
+  taskNotificationDone: (wordId: number): Promise<void> =>
+    invoke("task_notification_done", { wordId }),
+
+  taskNotificationLater: (wordId: number): Promise<void> =>
+    invoke("task_notification_later", { wordId }),
 };
 
 export function useTauriEvent<T = unknown>(
