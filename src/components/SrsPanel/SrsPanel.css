@@ -1,0 +1,176 @@
+/* src/components/SrsPanel/SrsPanel.css */
+
+/* ══════════════════════════════════════════════════════════════
+   SRS TODAY PANEL
+══════════════════════════════════════════════════════════════ */
+
+.srs-today {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  padding: 14px 16px 12px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.srs-today--loading { min-height: 96px; }
+.srs-skeleton {
+  display: block; height: 100%; border-radius: 8px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+  background-size: 200% 100%;
+  animation: srs-shimmer 1.5s infinite;
+}
+@keyframes srs-shimmer { to { background-position: -200% 0; } }
+
+.srs-today__header {
+  display: flex; align-items: baseline; justify-content: space-between;
+}
+.srs-today__title {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: rgba(255,255,255,0.35);
+}
+.srs-today__total {
+  font-size: 11px; color: rgba(255,255,255,0.25);
+}
+
+/* ── Stat cells ───────────────────────────────────────────── */
+.srs-today__cells {
+  display: flex; gap: 8px;
+}
+
+.srs-stat-cell {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  gap: 2px; padding: 8px 4px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  transition: background 0.15s;
+}
+.srs-stat-cell--urgent {
+  background: rgba(248,113,113,0.08);
+  border-color: rgba(248,113,113,0.2);
+  animation: srs-pulse 2.5s ease-in-out infinite;
+}
+@keyframes srs-pulse {
+  0%, 100% { box-shadow: none; }
+  50% { box-shadow: 0 0 0 2px rgba(248,113,113,0.12); }
+}
+
+.srs-stat-cell__icon  { font-size: 13px; color: var(--cell-color); }
+.srs-stat-cell__value { font-size: 22px; font-weight: 800; color: var(--cell-color); line-height: 1; font-variant-numeric: tabular-nums; }
+.srs-stat-cell__label { font-size: 9.5px; color: rgba(255,255,255,0.35); text-align: center; line-height: 1.2; }
+
+/* ── Progress bar ─────────────────────────────────────────── */
+.srs-today__progress-wrap {
+  display: flex; flex-direction: column; gap: 5px;
+}
+.srs-today__progress-track {
+  position: relative; height: 5px; border-radius: 99px;
+  background: rgba(255,255,255,0.06); overflow: hidden;
+}
+.srs-today__progress-fill {
+  position: absolute; top: 0; left: 0; height: 100%;
+  border-radius: 99px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.srs-today__progress-fill--learning  { background: rgba(167,139,250,0.45); }
+.srs-today__progress-fill--reviewing { background: rgba(96,165,250,0.55); }
+.srs-today__progress-fill--mastered  { background: #4ade80; }
+
+.srs-today__progress-label {
+  font-size: 10px; color: rgba(255,255,255,0.28); align-self: flex-end;
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   GROUP HEADER
+══════════════════════════════════════════════════════════════ */
+
+.srs-group-header {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  padding: 9px 12px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 2px;
+  transition: background 0.15s;
+  font-size: 13px;
+  color: rgba(255,255,255,0.75);
+}
+.srs-group-header:hover { background: rgba(255,255,255,0.05); }
+
+.srs-group-header__icon  { font-size: 14px; color: var(--group-color); flex-shrink: 0; }
+.srs-group-header__label { font-weight: 600; flex: 1; text-align: left; }
+
+.srs-group-header__meta  { display: flex; gap: 10px; align-items: center; }
+.srs-group-header__next  { font-size: 11px; color: rgba(255,255,255,0.35); }
+.srs-group-header__ease  { font-size: 11px; color: rgba(255,255,255,0.25); }
+
+.srs-group-header__count {
+  font-size: 11px; font-weight: 700; padding: 2px 7px;
+  border-radius: 99px; border: 1px solid; flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.srs-group-header__chevron { font-size: 11px; color: rgba(255,255,255,0.25); flex-shrink: 0; }
+
+
+/* ══════════════════════════════════════════════════════════════
+   SRS BADGE (on each VocabRow)
+══════════════════════════════════════════════════════════════ */
+
+.srs-badge {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+
+.srs-badge__mastery {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 10.5px; font-weight: 600;
+  padding: 2px 7px; border-radius: 99px;
+  border: 1px solid; white-space: nowrap;
+}
+.srs-badge__mastery-icon { font-size: 9px; }
+
+.srs-badge__interval {
+  font-size: 10.5px; color: rgba(255,255,255,0.35); white-space: nowrap;
+}
+.srs-badge__interval--urgent { font-weight: 600; }
+
+.srs-badge__streak {
+  font-size: 10.5px; color: rgba(255,255,255,0.45);
+}
+
+/* Repetition dots */
+.srs-badge__reps {
+  display: flex; align-items: center; gap: 2px;
+}
+.srs-badge__rep-dot {
+  display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+  background: rgba(167,139,250,0.45);
+}
+.srs-badge__rep-more {
+  font-size: 9px; color: rgba(167,139,250,0.6); margin-left: 1px;
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   TOGGLE: Grouped vs Flat view
+══════════════════════════════════════════════════════════════ */
+
+.vm-view-toggle {
+  display: flex; gap: 4px;
+}
+.vm-view-btn {
+  padding: 5px 10px; font-size: 11.5px; font-weight: 600;
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 6px;
+  background: transparent; color: rgba(255,255,255,0.45); cursor: pointer;
+  transition: all 0.15s;
+}
+.vm-view-btn:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); }
+.vm-view-btn--active {
+  background: rgba(167,139,250,0.15);
+  border-color: rgba(167,139,250,0.35);
+  color: #c4b5fd;
+}

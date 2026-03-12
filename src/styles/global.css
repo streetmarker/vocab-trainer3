@@ -260,6 +260,26 @@ body {
   transition: color 0.15s, background 0.15s;
   font-family: inherit;
 }
+
+.btn-danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.30);
+  border-radius: 9px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.btn-danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(239, 68, 68, 0.50);
+}
+.btn-danger:active:not(:disabled) { transform: scale(0.97); }
+.btn-danger:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn-ghost:hover { background: rgba(255,255,255,0.05); color: var(--text); }
 
 /* ─── Settings Page ──────────────────────────────────────────────────────── */

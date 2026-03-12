@@ -309,3 +309,20 @@
   color: var(--muted);
   margin: 4px 0 0;
 }
+
+/* ── SRS group wrapper ───────────────────────────────────────────────────────── */
+.srs-group {
+  margin-bottom: 6px;
+}
+
+/* ── SRS detail row (inside expanded VocabRow) ──────────────────────────────── */
+.srs-detail-row {
+  background: rgba(167,139,250,0.05);
+  border-radius: 6px;
+  padding: 8px 10px !important;
+}
+.srs-detail-grid {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  font-size: 11.5px; color: rgba(255,255,255,0.5);
+}
+.srs-detail-grid b { color: rgba(255,255,255,0.75); }

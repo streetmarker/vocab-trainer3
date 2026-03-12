@@ -11,7 +11,6 @@ export const Dashboard: React.FC = () => {
   const [words, setWords]           = useState<Word[]>([]);
   const [currentWord, setCurrentWord] = useState<Word | null>(null);
   const [loading, setLoading]       = useState(true);
-  const [practicing, setPracticing] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -23,16 +22,6 @@ export const Dashboard: React.FC = () => {
       setStats(s); setActivity(a); setWords(w); setCurrentWord(cw); setLoading(false);
     }).catch(console.error);
   }, []);
-
-  const handlePracticeNow = async () => {
-    setPracticing(true);
-    try {
-      const triggered = await api.triggerPopup();
-      if (!triggered) alert("Brak słów do ćwiczenia w tej chwili.");
-    } finally {
-      setPracticing(false);
-    }
-  };
 
   if (loading) return (
     <div className="dash-loading">
@@ -49,23 +38,13 @@ export const Dashboard: React.FC = () => {
           <h1 className="dash-title">Panel główny</h1>
           <p className="dash-subtitle">Twoje postępy w nauce angielskiego</p>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10 }}>
-          {stats && (
-            <div className="streak-badge">
-              <span className="streak-fire">🔥</span>
-              <span className="streak-count">{stats.currentStreak}</span>
-              <span className="streak-label">dni z rzędu</span>
-            </div>
-          )}
-          <button
-            className="btn-primary"
-            onClick={handlePracticeNow}
-            disabled={practicing}
-            style={{ fontSize: 13 }}
-          >
-            {practicing ? "Ładowanie…" : "▶ Ćwicz teraz"}
-          </button>
-        </div>
+        {stats && (
+          <div className="streak-badge">
+            <span className="streak-fire">🔥</span>
+            <span className="streak-count">{stats.currentStreak}</span>
+            <span className="streak-label">dni z rzędu</span>
+          </div>
+        )}
       </div>
 
       {/* Current word widget */}

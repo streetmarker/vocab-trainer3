@@ -34,11 +34,17 @@ use commands::AppState;
 pub fn show_task_notification(app: &tauri::AppHandle, word: &db::Word) {
     const LABEL: &str = "task-notification";
     const WIN_W: f64  = 360.0;
-    const WIN_H: f64  = 138.0;
+    // Height: 3px progress + 35px header + 120px flashcard + 52px answers + 52px actions = 262px
+    // After flip: actions collapse, answers expand — total stays ~262px
+    const WIN_H: f64  = 201.0;
 
-    let title       = word.term.clone();
-    let description = word.definition.chars().take(90).collect::<String>();
-    let word_id     = word.id;
+    // Front of card: Polish definition. Fall back to English definition if not set.
+    let term_pl = word.definition_pl
+        .clone()
+        .unwrap_or_else(|| word.definition.chars().take(60).collect());
+    let term_en      = word.term.clone();
+    let part_of_speech = word.part_of_speech.clone();
+    let word_id      = word.id;
 
     // ── Get existing window or create it now ─────────────────────────────────
     let notif = if let Some(w) = app.get_webview_window(LABEL) {
@@ -97,8 +103,9 @@ pub fn show_task_notification(app: &tauri::AppHandle, word: &db::Word) {
             LABEL,
             "task-notification",
             serde_json::json!({
-                "title":       title,
-                "description": description,
+                "termPl":      term_pl,
+                "termEn":      term_en,
+                "partOfSpeech": part_of_speech,
                 "wordId":      word_id,
             }),
         );
@@ -271,8 +278,10 @@ pub fn run() {
             commands::submit_answer,
             commands::start_session,
             commands::get_words,
+            commands::get_srs_overview,
             commands::add_word,
             commands::delete_word,
+            commands::clear_words,
             commands::get_overall_stats,
             commands::get_daily_stats,
             commands::get_activity_grid,
@@ -287,6 +296,9 @@ pub fn run() {
             commands::get_current_word,
             commands::task_notification_done,
             commands::task_notification_later,
+            commands::task_notification_known,
+            commands::flashcard_answer,
+            commands::srs_answer,
             commands::import_words_from_json,
         ])
         .run(tauri::generate_context!())

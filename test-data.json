@@ -1,0 +1,152 @@
+[
+  {
+    "term": "requirement",
+    "definition": "Something that is needed or must be fulfilled in a system or project",
+    "definitionPl": "wymaganie",
+    "partOfSpeech": "noun",
+    "phonetic": "/rɪˈkwaɪə.mənt/",
+    "difficulty": 2,
+    "examples": [
+      "The client added a new requirement to the project.",
+      "We need to clarify this requirement before development starts."
+    ],
+    "synonyms": ["need", "specification"],
+    "antonyms": ["option", "preference"],
+    "tags": ["B2", "business", "analysis"]
+  },
+  {
+    "term": "scope",
+    "definition": "The defined boundaries and extent of a project or task",
+    "definitionPl": "zakres projektu",
+    "partOfSpeech": "noun",
+    "phonetic": "/skəʊp/",
+    "difficulty": 2,
+    "examples": [
+      "This request is outside the current project scope.",
+      "We need to define the scope before starting implementation."
+    ],
+    "synonyms": ["range", "extent"],
+    "antonyms": ["restriction", "limitation"],
+    "tags": ["B2", "project", "analysis"]
+  },
+  {
+    "term": "clarify",
+    "definition": "To make something easier to understand",
+    "definitionPl": "wyjaśnić, doprecyzować",
+    "partOfSpeech": "verb",
+    "phonetic": "/ˈklær.ɪ.faɪ/",
+    "difficulty": 2,
+    "examples": [
+      "Could you clarify what the client expects?",
+      "We need to clarify the requirements during the meeting."
+    ],
+    "synonyms": ["explain", "specify"],
+    "antonyms": ["confuse", "obscure"],
+    "tags": ["B2", "communication", "meetings"]
+  },
+  {
+    "term": "workflow",
+    "definition": "A sequence of tasks that processes data or completes a business process",
+    "definitionPl": "przepływ pracy / workflow",
+    "partOfSpeech": "noun",
+    "phonetic": "/ˈwɜːk.fləʊ/",
+    "difficulty": 3,
+    "examples": [
+      "Let me explain the workflow for this process.",
+      "The workflow starts when the request is submitted."
+    ],
+    "synonyms": ["process", "procedure"],
+    "antonyms": ["chaos", "disorder"],
+    "tags": ["B2", "process", "bpm"]
+  },
+  {
+    "term": "trigger",
+    "definition": "An event that starts or activates a process",
+    "definitionPl": "wyzwalacz procesu",
+    "partOfSpeech": "noun",
+    "phonetic": "/ˈtrɪɡ.ə/",
+    "difficulty": 3,
+    "examples": [
+      "What triggers this process?",
+      "The workflow trigger is a new client request."
+    ],
+    "synonyms": ["cause", "activation"],
+    "antonyms": ["stop", "block"],
+    "tags": ["B2", "process", "automation"]
+  },
+  {
+    "term": "constraint",
+    "definition": "A limitation or restriction that affects how something can be done",
+    "definitionPl": "ograniczenie",
+    "partOfSpeech": "noun",
+    "phonetic": "/kənˈstreɪnt/",
+    "difficulty": 3,
+    "examples": [
+      "We must consider technical constraints.",
+      "Budget constraints limit the project options."
+    ],
+    "synonyms": ["limitation", "restriction"],
+    "antonyms": ["freedom", "flexibility"],
+    "tags": ["B2", "analysis", "project"]
+  },
+  {
+    "term": "dependency",
+    "definition": "A situation where one task relies on another task to be completed first",
+    "definitionPl": "zależność",
+    "partOfSpeech": "noun",
+    "phonetic": "/dɪˈpen.dən.si/",
+    "difficulty": 3,
+    "examples": [
+      "This feature has a dependency on another system.",
+      "We identified several dependencies in the process."
+    ],
+    "synonyms": ["connection", "relation"],
+    "antonyms": ["independence", "autonomy"],
+    "tags": ["B2", "project", "analysis"]
+  },
+  {
+    "term": "impact",
+    "definition": "The effect that a change or action has on something",
+    "definitionPl": "wpływ",
+    "partOfSpeech": "noun",
+    "phonetic": "/ˈɪm.pækt/",
+    "difficulty": 2,
+    "examples": [
+      "We need to evaluate the impact of this change.",
+      "This decision may impact other processes."
+    ],
+    "synonyms": ["effect", "influence"],
+    "antonyms": ["neutrality", "insignificance"],
+    "tags": ["B2", "decision", "analysis"]
+  },
+  {
+    "term": "issue",
+    "definition": "A problem or difficulty that needs to be resolved",
+    "definitionPl": "problem / zgłoszenie",
+    "partOfSpeech": "noun",
+    "phonetic": "/ˈɪʃ.uː/",
+    "difficulty": 2,
+    "examples": [
+      "We discovered an issue during testing.",
+      "The team is currently working on resolving the issue."
+    ],
+    "synonyms": ["problem", "difficulty"],
+    "antonyms": ["solution", "success"],
+    "tags": ["B2", "project", "support"]
+  },
+  {
+    "term": "follow up",
+    "definition": "To take further action after an earlier discussion or task",
+    "definitionPl": "wrócić do tematu / podjąć dalsze działania",
+    "partOfSpeech": "phrasal verb",
+    "phonetic": "/ˈfɒl.əʊ ʌp/",
+    "difficulty": 2,
+    "examples": [
+      "I'll follow up with the client tomorrow.",
+      "Let me follow up on the action items from the meeting."
+    ],
+    "synonyms": ["check", "continue"],
+    "antonyms": ["ignore", "drop"],
+    "tags": ["B2", "business", "communication"]
+  }
+]

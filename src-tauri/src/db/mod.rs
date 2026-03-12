@@ -221,6 +221,14 @@ impl Database {
         Ok(())
     }
 
+    /// Permanently deletes ALL words and their associated progress / history rows.
+    /// CASCADE foreign keys handle word_progress and exercise_history automatically.
+    pub fn clear_all_words(&self) -> Result<usize> {
+        let conn = self.conn.lock();
+        let deleted = conn.execute("DELETE FROM word", [])?;
+        Ok(deleted)
+    }
+
     // ─── Progress Queries ──────────────────────────────────────────────────
 
     pub fn get_or_create_progress(&self, word_id: i64) -> Result<WordProgress> {
@@ -395,29 +403,101 @@ impl Database {
     }
 
     pub fn get_session_word(&self) -> Result<Option<(Word, WordProgress)>> {
+        self.get_next_flashcard_word(None)
+    }
+
+    /// Select the next word for a flashcard session using a weighted scoring algorithm.
+    ///
+    /// # Scoring formula (higher score = shown sooner)
+    ///
+    /// | Component                        | Value        | Rationale                          |
+    /// |----------------------------------|--------------|------------------------------------|
+    /// | mastery = new (no progress yet)  | +40          | New words introduced first         |
+    /// | mastery = learning               | +30          | "Do ćwiczenia" words boosted       |
+    /// | mastery = reviewing              | +10          | Active review                      |
+    /// | mastery = mastered               |  +0          | Lowest priority                    |
+    /// | SM-2 review overdue              | +25          | Long overdue gets strong boost     |
+    /// | SM-2 review due today            | +15          | Due today gets moderate boost      |
+    /// | repetitions = 0                  | +20          | Never practiced                    |
+    /// | repetitions 1-2                  | +10          | Rarely practiced                   |
+    /// | repetitions 3-5                  |  +5          | Some practice                      |
+    /// | RANDOM() × 8                     | 0-8          | Prevent identical order every time |
+    ///
+    /// # Parameters
+    /// - `exclude_id`: word_id just answered — excluded so the same card never
+    ///   appears twice in a row (unless it's the only word in the DB)
+    pub fn get_next_flashcard_word(&self, exclude_id: Option<i64>) -> Result<Option<(Word, WordProgress)>> {
         let conn = self.conn.lock();
-        let row = conn.query_row(
-            "SELECT w.id FROM word w
+        let now  = Utc::now().to_rfc3339();
+        let excl = exclude_id.unwrap_or(-1); // -1 matches nothing (no word has id=-1)
+
+        let word_id: rusqlite::Result<i64> = conn.query_row(
+            "SELECT w.id
+             FROM word w
              LEFT JOIN word_progress p ON w.id = p.word_id
              WHERE w.is_active = 1
-             ORDER BY
-               CASE WHEN p.mastery_level IS NULL OR p.mastery_level = 'new' THEN 0
-                    WHEN p.mastery_level = 'learning' THEN 1 ELSE 2 END ASC,
-               RANDOM() LIMIT 1",
-            [], |r| r.get::<_, i64>(0),
+               AND w.id != ?2
+             ORDER BY (
+               -- ── Mastery tier (higher = more urgent) ──────────────────────
+               CASE
+                 WHEN p.mastery_level IS NULL OR p.mastery_level = 'new'      THEN 40
+                 WHEN p.mastery_level = 'learning'                             THEN 30
+                 WHEN p.mastery_level = 'reviewing'                            THEN 10
+                 ELSE 0
+               END
+
+               -- ── SM-2 review schedule ──────────────────────────────────────
+               + CASE
+                   WHEN p.next_review_at IS NULL          THEN 20
+                   WHEN p.next_review_at < ?1             THEN 25
+                   WHEN DATE(p.next_review_at) = DATE(?1) THEN 15
+                   ELSE 0
+                 END
+
+               -- ── Repetitions (fewer = higher priority) ────────────────────
+               + CASE
+                   WHEN p.repetitions IS NULL OR p.repetitions = 0 THEN 20
+                   WHEN p.repetitions <= 2                          THEN 10
+                   WHEN p.repetitions <= 5                          THEN  5
+                   ELSE 0
+                 END
+
+               -- ── Small random jitter prevents identical ordering ───────────
+               + (RANDOM() % 8)
+             ) DESC
+             LIMIT 1",
+            rusqlite::params![now, excl],
+            |r| r.get::<_, i64>(0),
         );
-        match row {
-            Ok(word_id) => {
+
+        match word_id {
+            Ok(id) => {
                 drop(conn);
-                let word = self.get_word_by_id(word_id)?;
+                let word = self.get_word_by_id(id)?;
                 if let Some(w) = word {
                     let progress = self.get_or_create_progress(w.id)?;
                     Ok(Some((w, progress)))
-                } else { Ok(None) }
+                } else {
+                    Ok(None)
+                }
             }
-            Err(_) => Ok(None),
+            // No rows = empty DB or only the excluded word exists.
+            // Fall back to excluded word so the session doesn't stall.
+            Err(rusqlite::Error::QueryReturnedNoRows) => {
+                if let Some(id) = exclude_id {
+                    drop(conn);
+                    let word = self.get_word_by_id(id)?;
+                    if let Some(w) = word {
+                        let progress = self.get_or_create_progress(w.id)?;
+                        return Ok(Some((w, progress)));
+                    }
+                }
+                Ok(None)
+            }
+            Err(e) => Err(e.into()),
         }
     }
+
 }
 
 // ─── Row Mappers ──────────────────────────────────────────────────────────────

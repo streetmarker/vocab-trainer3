@@ -18,8 +18,9 @@ import "./styles/notification.css";
 const appWindow = getCurrentWebviewWindow();
 
 type NotifPayload = {
-  title:       string;
-  description: string;
+  termPl:      string;
+  termEn:      string;
+  partOfSpeech?: string;
   wordId:      number;
 };
 
@@ -52,8 +53,9 @@ function NotificationApp() {
   return (
     <TaskNotification
       key={`${payload.wordId}-${Date.now()}`}
-      title={payload.title}
-      description={payload.description}
+      termPl={payload.termPl}
+      termEn={payload.termEn}
+      partOfSpeech={payload.partOfSpeech}
       wordId={payload.wordId}
       onDismiss={dismiss}
     />

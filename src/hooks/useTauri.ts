@@ -25,6 +25,9 @@ export const api = {
   getWords: (): Promise<Word[]> =>
     invoke("get_words"),
 
+  getSrsOverview: (): Promise<import("./useTauri").SrsOverview> =>
+    invoke("get_srs_overview"),
+
   addWord: (word: {
     term: string;
     definition: string;
@@ -40,6 +43,9 @@ export const api = {
 
   deleteWord: (wordId: number): Promise<void> =>
     invoke("delete_word", { wordId }),
+
+  clearWords: (): Promise<number> =>
+    invoke("clear_words"),
 
   getOverallStats: (): Promise<OverallStats> =>
     invoke("get_overall_stats"),
@@ -100,6 +106,31 @@ export const api = {
   taskNotificationLater: (wordId: number): Promise<void> =>
     invoke("task_notification_later", { wordId }),
 
+  taskNotificationKnown: (wordId: number): Promise<void> =>
+    invoke("task_notification_known", { wordId }),
+
+  /** Primary SRS command — grades a flashcard and returns the next word. */
+  srsAnswer: (wordId: number, grade: "again" | "hard" | "good" | "easy"): Promise<{
+    wordId:            number;
+    grade:             string;
+    newMastery:        string;
+    newIntervalDays:   number;
+    newEasiness:       number;
+    streak:            number;
+    nextReviewLabel:   string;   // human-readable, e.g. "za 6 dni"
+    nextWordId:        number | null;
+    nextTermPl:        string | null;
+    nextTermEn:        string | null;
+    nextPartOfSpeech:  string | null;
+  }> => invoke("srs_answer", { wordId, grade }),
+
+  flashcardAnswer: (wordId: number, decision: "known" | "practice"): Promise<{
+    wordId: number; decision: string; newMastery: string;
+    newIntervalDays: number; streak: number;
+    nextWordId: number | null; nextTermPl: string | null;
+    nextTermEn: string | null; nextPartOfSpeech: string | null;
+  }> => invoke("flashcard_answer", { wordId, decision }),
+
   importWordsFromJson: (json: string): Promise<{
     added: number;
     skipped: number;
@@ -118,4 +149,44 @@ export function useTauriEvent<T = unknown>(
     listen<T>(event, (e) => handlerRef.current(e.payload)).then((fn) => { unlisten = fn; });
     return () => { unlisten?.(); };
   }, [event]);
+}
+
+// ─── SRS Overview ─────────────────────────────────────────────────────────────
+
+export type SrsReviewStatus = "overdue" | "today" | "future" | "never";
+export type SrsMastery      = "new" | "learning" | "reviewing" | "mastered";
+
+export interface WordWithProgress {
+  id:            number;
+  term:          string;
+  definition:    string;
+  definitionPl?: string;
+  partOfSpeech:  string;
+  phonetic?:     string;
+  difficulty:    number;
+  tags:          string[];
+  // SRS
+  masteryLevel:  SrsMastery;
+  repetitions:   number;
+  intervalDays:  number;
+  easeFactor:    number;
+  streak:        number;
+  totalReviews:  number;
+  nextReviewAt?: string;
+  lastReviewAt?: string;
+  reviewStatus:  SrsReviewStatus;
+}
+
+export interface SrsTodayStats {
+  dueToday: number;
+  newWords: number;
+  learning: number;
+  reviewing: number;
+  mastered:  number;
+  total:     number;
+}
+
+export interface SrsOverview {
+  today: SrsTodayStats;
+  words: WordWithProgress[];
 }

@@ -74,6 +74,115 @@ pub async fn get_words(state: State<'_, AppState>) -> Result<Vec<Word>, String> 
     state.db.get_all_words().map_err(|e| e.to_string())
 }
 
+// ─── SRS Overview ─────────────────────────────────────────────────────────────
+
+/// Single word enriched with its SRS progress for the overview screen.
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WordWithProgress {
+    // Core word fields (mirrors Word struct for frontend)
+    pub id:             i64,
+    pub term:           String,
+    pub definition:     String,
+    pub definition_pl:  Option<String>,
+    pub part_of_speech: String,
+    pub phonetic:       Option<String>,
+    pub difficulty:     i32,
+    pub tags:           Vec<String>,
+    // SRS progress (None if word has never been reviewed)
+    pub mastery_level:  String,       // "new" | "learning" | "reviewing" | "mastered"
+    pub repetitions:    i32,
+    pub interval_days:  f64,
+    pub ease_factor:    f64,
+    pub streak:         i32,
+    pub total_reviews:  i32,
+    /// ISO-8601 string, e.g. "2025-03-15T14:00:00Z"
+    pub next_review_at: Option<String>,
+    pub last_review_at: Option<String>,
+    /// "overdue" | "today" | "future" | "never"
+    pub review_status:  String,
+}
+
+/// Aggregate counts used by the "Stan nauki dziś" panel.
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SrsTodayStats {
+    pub due_today:  usize,   // next_review_at <= now
+    pub new_words:  usize,   // mastery_level = "new" (never reviewed)
+    pub learning:   usize,   // mastery_level = "learning"
+    pub reviewing:  usize,   // mastery_level = "reviewing"
+    pub mastered:   usize,   // mastery_level = "mastered"
+    pub total:      usize,
+}
+
+/// Full SRS overview — returned in one call to avoid multiple round-trips.
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SrsOverview {
+    pub today:    SrsTodayStats,
+    pub words:    Vec<WordWithProgress>,
+}
+
+/// Returns all active words joined with their SRS progress (or defaults for new words).
+/// The frontend uses this to render the grouped word list with SRS badges.
+#[tauri::command]
+pub async fn get_srs_overview(state: State<'_, AppState>) -> Result<SrsOverview, String> {
+    let now = chrono::Utc::now();
+    let today_str = now.format("%Y-%m-%d").to_string();
+
+    let words: Vec<Word> = state.db.get_all_words().map_err(|e| e.to_string())?;
+
+    let mut enriched: Vec<WordWithProgress> = Vec::with_capacity(words.len());
+
+    for word in &words {
+        // get_or_create_progress is cheap for new words (INSERT OR IGNORE pattern)
+        let p = state.db.get_or_create_progress(word.id).map_err(|e| e.to_string())?;
+
+        let next_iso = Some(p.next_review_at.to_rfc3339());
+        let last_iso = p.last_review_at.map(|t| t.to_rfc3339());
+
+        let review_status = if p.total_reviews == 0 {
+            "never".to_string()
+        } else if p.next_review_at <= now {
+            "overdue".to_string()
+        } else {
+            let next_date = p.next_review_at.format("%Y-%m-%d").to_string();
+            if next_date == today_str { "today".to_string() } else { "future".to_string() }
+        };
+
+        enriched.push(WordWithProgress {
+            id:             word.id,
+            term:           word.term.clone(),
+            definition:     word.definition.clone(),
+            definition_pl:  word.definition_pl.clone(),
+            part_of_speech: word.part_of_speech.clone(),
+            phonetic:       word.phonetic.clone(),
+            difficulty:     word.difficulty,
+            tags:           word.tags.clone(),
+            mastery_level:  p.mastery_level.as_str().to_string(),
+            repetitions:    p.repetitions,
+            interval_days:  p.interval_days,
+            ease_factor:    p.easiness_factor,
+            streak:         p.streak,
+            total_reviews:  p.total_reviews,
+            next_review_at: next_iso,
+            last_review_at: last_iso,
+            review_status,
+        });
+    }
+
+    let today = SrsTodayStats {
+        due_today: enriched.iter().filter(|w| w.review_status == "overdue" || w.review_status == "today").count(),
+        new_words: enriched.iter().filter(|w| w.mastery_level == "new").count(),
+        learning:  enriched.iter().filter(|w| w.mastery_level == "learning").count(),
+        reviewing: enriched.iter().filter(|w| w.mastery_level == "reviewing").count(),
+        mastered:  enriched.iter().filter(|w| w.mastery_level == "mastered").count(),
+        total:     enriched.len(),
+    };
+
+    Ok(SrsOverview { today, words: enriched })
+}
+
 #[tauri::command]
 pub async fn add_word(
     term: String,
@@ -109,6 +218,13 @@ pub async fn add_word(
 #[tauri::command]
 pub async fn delete_word(word_id: i64, state: State<'_, AppState>) -> Result<(), String> {
     state.db.delete_word(word_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn clear_words(state: State<'_, AppState>) -> Result<usize, String> {
+    let deleted = state.db.clear_all_words().map_err(|e| e.to_string())?;
+    log::info!("clear_words: permanently deleted {} words (cascade: progress + history)", deleted);
+    Ok(deleted)
 }
 
 // ─── Stats / Progress Commands ────────────────────────────────────────────────
@@ -426,6 +542,198 @@ pub async fn task_notification_later(
     state.scheduler.record_popup_dismissed(false);
     Ok(())
 }
+
+/// User clicked "Dobrze" — they already know the word.
+/// Records a positive SM2 review (quality=5) without opening the exercise popup.
+/// Counts toward the daily limit and resets the scheduler gap.
+#[tauri::command]
+pub async fn task_notification_known(
+    word_id: i64,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    log::info!("task_notification_known: word_id={} — recording correct answer", word_id);
+    let session_id = state.scheduler.session_id();
+    state.engine
+        .process_answer(
+            word_id,
+            true,                             // was_correct
+            0,                                // response_time_ms (instant — no popup shown)
+            None,                             // user_answer
+            crate::db::ExerciseType::Introduction,
+            &session_id,
+        )
+        .map_err(|e| e.to_string())?;
+    state.scheduler.record_popup_dismissed(true);
+    Ok(())
+}
+
+/// The answer a user gave on a flashcard.
+/// Four-level SRS grade — maps directly to SM-2 quality (0–5).
+///
+/// | Button    | Quality | Meaning                              | SM-2 effect               |
+/// |-----------|---------|--------------------------------------|---------------------------|
+/// | Again     |    1    | Completely forgot / wrong            | Reset interval to ~10 min |
+/// | Hard      |    3    | Recalled but with real effort        | Short interval, EF drops  |
+/// | Good      |    4    | Recalled correctly                   | Normal interval            |
+/// | Easy      |    5    | Instant recall, no hesitation        | Longer interval, EF rises |
+#[derive(Debug, serde::Deserialize, PartialEq, Clone, Copy)]
+#[serde(rename_all = "camelCase")]
+pub enum SrsGrade { Again, Hard, Good, Easy }
+
+impl SrsGrade {
+    pub fn to_quality(self) -> i32 {
+        match self {
+            Self::Again => 1,
+            Self::Hard  => 3,
+            Self::Good  => 4,
+            Self::Easy  => 5,
+        }
+    }
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Again => "again",
+            Self::Hard  => "hard",
+            Self::Good  => "good",
+            Self::Easy  => "easy",
+        }
+    }
+    pub fn was_correct(self) -> bool {
+        self != Self::Again
+    }
+}
+
+/// Full SRS result payload — current-card outcome + next card data in one response.
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SrsResult {
+    // ── This card's outcome ──────────────────────────────────────────────────
+    pub word_id:           i64,
+    pub grade:             String,     // "again" | "hard" | "good" | "easy"
+    pub new_mastery:       String,     // "new" | "learning" | "reviewing" | "mastered"
+    pub new_interval_days: f64,
+    pub new_easiness:      f64,
+    pub streak:            i32,
+    /// Human-readable next review time, e.g. "za 6 dni" or "za 10 minut"
+    pub next_review_label: String,
+    // ── Next card (None = session complete / DB empty) ───────────────────────
+    pub next_word_id:         Option<i64>,
+    pub next_term_pl:         Option<String>,
+    pub next_term_en:         Option<String>,
+    pub next_part_of_speech:  Option<String>,
+}
+
+/// Format a fractional-day interval into a Polish human-readable string.
+fn format_interval_pl(days: f64) -> String {
+    let minutes = (days * 24.0 * 60.0).round() as i64;
+    match minutes {
+        m if m < 1    => "teraz".into(),
+        m if m < 60   => format!("za {} min", m),
+        m if m < 1440 => format!("za {} h",   m / 60),
+        d             => {
+            let d = d / 1440;
+            if d == 1 { "jutro".into() } else { format!("za {} dni", d) }
+        }
+    }
+}
+
+/// Primary SRS command called by the Flashcard after user grades a card.
+///
+/// Flow:
+///   1. Map SrsGrade → SM-2 quality (1 / 3 / 4 / 5)
+///   2. engine.process_answer() — updates word_progress + inserts exercise_history row
+///   3. get_next_flashcard_word(exclude = word_id) — weighted priority SQL
+///   4. Return SrsResult (outcome + next card) in a single response
+#[tauri::command]
+pub async fn srs_answer(
+    word_id: i64,
+    grade:   SrsGrade,
+    state:   State<'_, AppState>,
+) -> Result<SrsResult, String> {
+    let session_id = state.scheduler.session_id();
+
+    let result = state.engine
+        .process_answer(
+            word_id,
+            grade.was_correct(),
+            0,    // response_time_ms irrelevant for flashcards — quality drives SM-2
+            None,
+            crate::db::ExerciseType::Introduction,
+            &session_id,
+        )
+        .map_err(|e| e.to_string())?;
+
+    let next_review_label = format_interval_pl(result.new_interval_days);
+
+    log::info!(
+        "srs_answer: word='{}' grade={} quality={} → mastery={} interval={:.1}d ({}) ef={:.2} streak={}",
+        result.word.term,
+        grade.as_str(),
+        grade.to_quality(),
+        result.mastery_level,
+        result.new_interval_days,
+        next_review_label,
+        result.new_ef,
+        result.streak,
+    );
+
+    // ── Next card ─────────────────────────────────────────────────────────────
+    let next = state.db
+        .get_next_flashcard_word(Some(word_id))
+        .map_err(|e| e.to_string())?;
+
+    let (next_word_id, next_term_pl, next_term_en, next_part_of_speech) = match next {
+        Some((w, _)) => {
+            let term_pl = w.definition_pl.clone()
+                .unwrap_or_else(|| w.definition.chars().take(60).collect());
+            (Some(w.id), Some(term_pl), Some(w.term.clone()), Some(w.part_of_speech.clone()))
+        }
+        None => (None, None, None, None),
+    };
+
+    Ok(SrsResult {
+        word_id,
+        grade: grade.as_str().to_string(),
+        new_mastery:       result.mastery_level,
+        new_interval_days: result.new_interval_days,
+        new_easiness:      result.new_ef,
+        streak:            result.streak,
+        next_review_label,
+        next_word_id,
+        next_term_pl,
+        next_term_en,
+        next_part_of_speech,
+    })
+}
+
+// Keep flashcard_answer for backwards compat — delegates to srs_answer logic
+#[allow(dead_code)]
+pub enum FlashcardDecision { Known, Practice }
+
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FlashcardResult {
+    pub word_id: i64, pub decision: String, pub new_mastery: String,
+    pub new_interval_days: f64, pub streak: i32,
+    pub next_word_id: Option<i64>, pub next_term_pl: Option<String>,
+    pub next_term_en: Option<String>, pub next_part_of_speech: Option<String>,
+}
+
+#[tauri::command]
+pub async fn flashcard_answer(
+    word_id: i64,
+    decision: String,   // "known" | "practice"
+    state: State<'_, AppState>,
+) -> Result<FlashcardResult, String> {
+    let grade = if decision == "known" { SrsGrade::Good } else { SrsGrade::Again };
+    let srs = srs_answer(word_id, grade, state).await?;
+    Ok(FlashcardResult {
+        word_id: srs.word_id, decision, new_mastery: srs.new_mastery,
+        new_interval_days: srs.new_interval_days, streak: srs.streak,
+        next_word_id: srs.next_word_id, next_term_pl: srs.next_term_pl,
+        next_term_en: srs.next_term_en, next_part_of_speech: srs.next_part_of_speech,
+    })
+}
+
 
 // ─── JSON Import ──────────────────────────────────────────────────────────────
 

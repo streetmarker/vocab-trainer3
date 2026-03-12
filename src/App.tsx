@@ -6,7 +6,6 @@ import { VocabManager } from "./components/VocabManager/VocabManager";
 import type { AppRoute } from "./types";
 import { api } from "./hooks/useTauri";
 import "./styles/global.css";
-import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 export default function App() {
   const [route, setRoute] = useState<AppRoute>("dashboard");
@@ -56,7 +55,6 @@ export default function App() {
 
       {/* ── Main Content ──────────────────────────────────────────────── */}
       <main className="main-content">
-
         {route === "dashboard" && <Dashboard />}
         {route === "vocab" && <VocabManager />}
         {route === "settings" && <SettingsPage />}
@@ -139,6 +137,7 @@ const SettingsPage: React.FC = () => {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   useEffect(() => {
     api.getSettings().then((s) => {
@@ -146,6 +145,24 @@ const SettingsPage: React.FC = () => {
       setLoaded(true);
     }).catch(() => setLoaded(true));
   }, []);
+
+  const handleClearWords = async () => {
+    const confirmed = confirm(
+      "Czy na pewno chcesz wyczyścić całą bazę słówek?\n\n" +
+      "Zostaną usunięte wszystkie słowa oraz cały postęp nauki (SRS, powtórki, historia).\n\n" +
+      "Tej operacji nie można cofnąć."
+    );
+    if (!confirmed) return;
+    setClearing(true);
+    try {
+      const count = await api.clearWords();
+      alert(`Usunięto ${count} słów i cały powiązany postęp nauki.`);
+    } catch (e: any) {
+      alert("Błąd podczas czyszczenia bazy: " + e.toString());
+    } finally {
+      setClearing(false);
+    }
+  };
 
   const update = async (patch: Partial<Settings>) => {
     const next = { ...settings, ...patch };
@@ -258,6 +275,22 @@ const SettingsPage: React.FC = () => {
                   onChange={(e) => update({ workHoursEnd: e.target.value })}
                 />
               </div>
+            }
+          />
+        </SettingsSection>
+
+        <SettingsSection title="Dane">
+          <SettingRow
+            label="Wyczyść bazę słówek"
+            description="Trwale usuwa wszystkie słowa i cały postęp nauki (SRS, historia, powtórki). Operacji nie można cofnąć."
+            control={
+              <button
+                className="btn-danger"
+                onClick={handleClearWords}
+                disabled={clearing}
+              >
+                {clearing ? "Usuwanie…" : "🗑 Wyczyść bazę"}
+              </button>
             }
           />
         </SettingsSection>
