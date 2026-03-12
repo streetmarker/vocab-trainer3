@@ -23,6 +23,8 @@ pub struct Word {
     pub difficulty: i32,
     pub created_at: DateTime<Utc>,
     pub is_active: bool,
+    pub sentence_pl: Option<String>,     // Example sentence in Polish (bold term on flashcard front)
+    pub sentence_en: Option<String>,     // Example sentence in English (bold term on flashcard back)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -151,10 +153,10 @@ impl Database {
     fn migrate(&self) -> Result<()> {
         let conn = self.conn.lock();
         conn.execute_batch(SCHEMA_SQL)?;
-        // Non-destructive migration: add definition_pl if missing
-        let _ = conn.execute_batch(
-            "ALTER TABLE word ADD COLUMN definition_pl TEXT;"
-        );
+        // Non-destructive migrations: ignore errors if column already exists
+        let _ = conn.execute_batch("ALTER TABLE word ADD COLUMN definition_pl TEXT;");
+        let _ = conn.execute_batch("ALTER TABLE word ADD COLUMN sentence_pl TEXT;");
+        let _ = conn.execute_batch("ALTER TABLE word ADD COLUMN sentence_en TEXT;");
         Ok(())
     }
 
@@ -164,8 +166,9 @@ impl Database {
         let conn = self.conn.lock();
         conn.execute(
             "INSERT INTO word (term, definition, definition_pl, part_of_speech, phonetic,
-             examples, synonyms, antonyms, tags, difficulty, created_at, is_active)
-             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
+             examples, synonyms, antonyms, tags, difficulty, created_at, is_active,
+             sentence_pl, sentence_en)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14)",
             params![
                 word.term, word.definition, word.definition_pl,
                 word.part_of_speech, word.phonetic,
@@ -174,6 +177,7 @@ impl Database {
                 serde_json::to_string(&word.antonyms)?,
                 serde_json::to_string(&word.tags)?,
                 word.difficulty, word.created_at.to_rfc3339(), word.is_active,
+                word.sentence_pl, word.sentence_en,
             ],
         )?;
         Ok(conn.last_insert_rowid())
@@ -183,7 +187,8 @@ impl Database {
         let conn = self.conn.lock();
         let mut stmt = conn.prepare(
             "SELECT id, term, definition, definition_pl, part_of_speech, phonetic,
-             examples, synonyms, antonyms, tags, difficulty, created_at, is_active
+             examples, synonyms, antonyms, tags, difficulty, created_at, is_active,
+             sentence_pl, sentence_en
              FROM word WHERE is_active = 1 ORDER BY term",
         )?;
         let words = stmt.query_map([], row_to_word)?.collect::<Result<Vec<_>, _>>()?;
@@ -194,7 +199,8 @@ impl Database {
         let conn = self.conn.lock();
         let mut stmt = conn.prepare(
             "SELECT id, term, definition, definition_pl, part_of_speech, phonetic,
-             examples, synonyms, antonyms, tags, difficulty, created_at, is_active
+             examples, synonyms, antonyms, tags, difficulty, created_at, is_active,
+             sentence_pl, sentence_en
              FROM word WHERE id = ?1",
         )?;
         let mut rows = stmt.query_map([id], row_to_word)?;
@@ -205,7 +211,8 @@ impl Database {
         let conn = self.conn.lock();
         let mut stmt = conn.prepare(
             "SELECT id, term, definition, definition_pl, part_of_speech, phonetic,
-             examples, synonyms, antonyms, tags, difficulty, created_at, is_active
+             examples, synonyms, antonyms, tags, difficulty, created_at, is_active,
+             sentence_pl, sentence_en
              FROM word WHERE id != ?1 AND is_active = 1
              ORDER BY RANDOM() LIMIT ?2",
         )?;
@@ -290,6 +297,7 @@ impl Database {
         let mut stmt = conn.prepare(
             "SELECT w.id, w.term, w.definition, w.definition_pl, w.part_of_speech, w.phonetic,
              w.examples, w.synonyms, w.antonyms, w.tags, w.difficulty, w.created_at, w.is_active,
+             w.sentence_pl, w.sentence_en,
              p.id, p.word_id, p.easiness_factor, p.interval_days, p.repetitions,
              p.next_review_at, p.last_review_at, p.total_reviews, p.correct_reviews,
              p.streak, p.introduced_at, p.session_reviews, p.next_session_review_at, p.mastery_level
@@ -310,18 +318,20 @@ impl Database {
                 difficulty: row.get(10)?,
                 created_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(11)?).unwrap().with_timezone(&Utc),
                 is_active: row.get(12)?,
+                sentence_pl: row.get(13)?,
+                sentence_en: row.get(14)?,
             };
             let progress = WordProgress {
-                id: row.get(13)?, word_id: row.get(14)?,
-                easiness_factor: row.get(15)?, interval_days: row.get(16)?,
-                repetitions: row.get(17)?,
-                next_review_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(18)?).unwrap().with_timezone(&Utc),
-                last_review_at: row.get::<_, Option<String>>(19)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
-                total_reviews: row.get(20)?, correct_reviews: row.get(21)?, streak: row.get(22)?,
-                introduced_at: row.get::<_, Option<String>>(23)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
-                session_reviews: row.get(24)?,
-                next_session_review_at: row.get::<_, Option<String>>(25)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
-                mastery_level: MasteryLevel::from_str(&row.get::<_, String>(26).unwrap_or_default()),
+                id: row.get(15)?, word_id: row.get(16)?,
+                easiness_factor: row.get(17)?, interval_days: row.get(18)?,
+                repetitions: row.get(19)?,
+                next_review_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(20)?).unwrap().with_timezone(&Utc),
+                last_review_at: row.get::<_, Option<String>>(21)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
+                total_reviews: row.get(22)?, correct_reviews: row.get(23)?, streak: row.get(24)?,
+                introduced_at: row.get::<_, Option<String>>(25)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
+                session_reviews: row.get(26)?,
+                next_session_review_at: row.get::<_, Option<String>>(27)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
+                mastery_level: MasteryLevel::from_str(&row.get::<_, String>(28).unwrap_or_default()),
             };
             Ok((word, progress))
         })?.collect::<Result<Vec<_>, _>>()?;
@@ -514,6 +524,8 @@ fn row_to_word(row: &rusqlite::Row) -> rusqlite::Result<Word> {
         difficulty: row.get(10)?,
         created_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(11)?).unwrap().with_timezone(&Utc),
         is_active: row.get(12)?,
+        sentence_pl: row.get(13)?,
+        sentence_en: row.get(14)?,
     })
 }
 
@@ -547,7 +559,9 @@ CREATE TABLE IF NOT EXISTS word (
     tags            TEXT NOT NULL DEFAULT '[]',
     difficulty      INTEGER NOT NULL DEFAULT 2 CHECK(difficulty BETWEEN 1 AND 5),
     created_at      TEXT NOT NULL,
-    is_active       INTEGER NOT NULL DEFAULT 1
+    is_active       INTEGER NOT NULL DEFAULT 1,
+    sentence_pl     TEXT,
+    sentence_en     TEXT
 );
 
 CREATE TABLE IF NOT EXISTS word_progress (

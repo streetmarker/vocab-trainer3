@@ -21,8 +21,8 @@ import "../SrsPanel/SrsPanel.css";
 import "./VocabManager.css";
 
 const POS_OPTIONS: PartOfSpeech[] = [
-  "noun", "verb", "adjective", "adverb", "pronoun",
-  "preposition", "conjunction", "interjection", "phrase",
+  "noun","verb","adjective","adverb","pronoun",
+  "preposition","conjunction","interjection","phrase",
 ];
 
 interface WordFormData {
@@ -30,27 +30,29 @@ interface WordFormData {
   partOfSpeech: PartOfSpeech; phonetic: string;
   examples: string; synonyms: string; antonyms: string;
   tags: string; difficulty: number;
+  sentencePl: string; sentenceEn: string;
 }
 const emptyForm: WordFormData = {
-  term: "", definition: "", definitionPl: "", partOfSpeech: "noun", phonetic: "",
-  examples: "", synonyms: "", antonyms: "", tags: "", difficulty: 2,
+  term:"",definition:"",definitionPl:"",partOfSpeech:"noun",phonetic:"",
+  examples:"",synonyms:"",antonyms:"",tags:"",difficulty:2,
+  sentencePl:"",sentenceEn:"",
 };
 
 type ViewMode = "flat" | "grouped";
 
 export const VocabManager: React.FC = () => {
-  const [overview, setOverview] = useState<SrsOverview | null>(null);
+  const [overview, setOverview]   = useState<SrsOverview | null>(null);
   const [srsLoading, setSrsLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [viewMode, setViewMode] = useState<ViewMode>("grouped");
+  const [search, setSearch]       = useState("");
+  const [viewMode, setViewMode]   = useState<ViewMode>("grouped");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(
     () => Object.fromEntries(SRS_GROUPS.map(g => [g.id, true]))
   );
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<WordFormData>(emptyForm);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [seeding, setSeeding] = useState(false);
+  const [showForm, setShowForm]   = useState(false);
+  const [form, setForm]           = useState<WordFormData>(emptyForm);
+  const [saving, setSaving]       = useState(false);
+  const [error, setError]         = useState("");
+  const [seeding, setSeeding]     = useState(false);
 
   const loadData = async () => {
     setSrsLoading(true);
@@ -87,11 +89,13 @@ export const VocabManager: React.FC = () => {
         definitionPl: form.definitionPl.trim() || undefined,
         partOfSpeech: form.partOfSpeech,
         phonetic: form.phonetic.trim() || undefined,
-        examples: form.examples.split("\n").map(s => s.trim()).filter(Boolean),
-        synonyms: form.synonyms.split(",").map(s => s.trim()).filter(Boolean),
-        antonyms: form.antonyms.split(",").map(s => s.trim()).filter(Boolean),
-        tags: form.tags.split(",").map(s => s.trim()).filter(Boolean),
+        examples: form.examples.split("\n").map(s=>s.trim()).filter(Boolean),
+        synonyms: form.synonyms.split(",").map(s=>s.trim()).filter(Boolean),
+        antonyms: form.antonyms.split(",").map(s=>s.trim()).filter(Boolean),
+        tags: form.tags.split(",").map(s=>s.trim()).filter(Boolean),
         difficulty: form.difficulty,
+        sentencePl: form.sentencePl.trim() || undefined,
+        sentenceEn: form.sentenceEn.trim() || undefined,
       });
       setForm(emptyForm); setShowForm(false); await loadData();
     } catch (e: any) { setError(e.toString()); }
@@ -123,7 +127,7 @@ export const VocabManager: React.FC = () => {
 
       {/* ── SRS Today Panel ────────────────────────────────────── */}
       <SrsToday stats={overview?.today ?? {
-        dueToday: 0, newWords: 0, learning: 0, reviewing: 0, mastered: 0, total: 0,
+        dueToday:0, newWords:0, learning:0, reviewing:0, mastered:0, total:0,
       }} loading={srsLoading} />
 
       {/* ── Toolbar ────────────────────────────────────────────── */}
@@ -166,7 +170,7 @@ export const VocabManager: React.FC = () => {
 
       {/* ── Stats row ───────────────────────────────────────────── */}
       <div className="vm-stats">
-        <span>{words.length} {words.length === 1 ? "słowo" : "słów"} łącznie</span>
+        <span>{words.length} {words.length===1 ? "słowo":"słów"} łącznie</span>
         <span>·</span>
         <span>{filtered.length} wyświetlanych</span>
         {search && <span className="vm-filter-tag">filtr: „{search}"</span>}
@@ -224,59 +228,69 @@ export const VocabManager: React.FC = () => {
             <div className="form-grid">
               <div className="form-field span-2">
                 <label>Słowo (angielski) *</label>
-                <input value={form.term} onChange={e => setForm({ ...form, term: e.target.value })}
+                <input value={form.term} onChange={e => setForm({...form, term:e.target.value})}
                   placeholder="np. ephemeral" autoFocus />
               </div>
               <div className="form-field">
                 <label>Część mowy</label>
                 <select value={form.partOfSpeech}
-                  onChange={e => setForm({ ...form, partOfSpeech: e.target.value as PartOfSpeech })}>
-                  {POS_OPTIONS.map(p => <option key={p} value={p}>{PART_OF_SPEECH_LABELS[p] ?? p}</option>)}
+                  onChange={e => setForm({...form, partOfSpeech:e.target.value as PartOfSpeech})}>
+                  {POS_OPTIONS.map(p => <option key={p} value={p}>{PART_OF_SPEECH_LABELS[p]??p}</option>)}
                 </select>
               </div>
               <div className="form-field">
                 <label>Wymowa (fonetyczna)</label>
-                <input value={form.phonetic} onChange={e => setForm({ ...form, phonetic: e.target.value })}
+                <input value={form.phonetic} onChange={e => setForm({...form, phonetic:e.target.value})}
                   placeholder="/ɪˈfem.ər.əl/" />
               </div>
               <div className="form-field span-2">
                 <label>Definicja (angielski) *</label>
-                <textarea value={form.definition} onChange={e => setForm({ ...form, definition: e.target.value })}
+                <textarea value={form.definition} onChange={e => setForm({...form, definition:e.target.value})}
                   placeholder="Zwięzła definicja po angielsku" rows={2} />
               </div>
               <div className="form-field span-2">
                 <label><span className="pl-flag">🇵🇱</span> Wyjaśnienie po polsku</label>
-                <textarea value={form.definitionPl} onChange={e => setForm({ ...form, definitionPl: e.target.value })}
+                <textarea value={form.definitionPl} onChange={e => setForm({...form, definitionPl:e.target.value})}
                   placeholder="Tłumaczenie lub opis po polsku" rows={2} />
               </div>
               <div className="form-field span-2">
+                <label>🇵🇱 Zdanie po polsku <span className="form-label-hint">(słowo angielskie zostanie pogrubione na fiszce)</span></label>
+                <textarea value={form.sentencePl} onChange={e => setForm({...form, sentencePl:e.target.value})}
+                  placeholder={"np. Jego ephemeral piękno kwiatów wiśni jest niezapomniane"} rows={2} />
+              </div>
+              <div className="form-field span-2">
+                <label>🇬🇧 Zdanie po angielsku <span className="form-label-hint">(słowo zostanie pogrubione na fiszce)</span></label>
+                <textarea value={form.sentenceEn} onChange={e => setForm({...form, sentenceEn:e.target.value})}
+                  placeholder={"np. The ephemeral beauty of cherry blossoms reminds us to cherish the moment."} rows={2} />
+              </div>
+              <div className="form-field span-2">
                 <label>Przykłady użycia (jeden na linię)</label>
-                <textarea value={form.examples} onChange={e => setForm({ ...form, examples: e.target.value })}
+                <textarea value={form.examples} onChange={e => setForm({...form, examples:e.target.value})}
                   placeholder="The ephemeral beauty of cherry blossoms..." rows={2} />
               </div>
               <div className="form-field">
                 <label>Synonimy (oddzielone przecinkami)</label>
-                <input value={form.synonyms} onChange={e => setForm({ ...form, synonyms: e.target.value })}
+                <input value={form.synonyms} onChange={e => setForm({...form, synonyms:e.target.value})}
                   placeholder="fleeting, transient" />
               </div>
               <div className="form-field">
                 <label>Antonimy (oddzielone przecinkami)</label>
-                <input value={form.antonyms} onChange={e => setForm({ ...form, antonyms: e.target.value })}
+                <input value={form.antonyms} onChange={e => setForm({...form, antonyms:e.target.value})}
                   placeholder="permanent, enduring" />
               </div>
               <div className="form-field">
                 <label>Tagi (oddzielone przecinkami)</label>
-                <input value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })}
+                <input value={form.tags} onChange={e => setForm({...form, tags:e.target.value})}
                   placeholder="literackie, egzamin" />
               </div>
               <div className="form-field">
                 <label>Poziom trudności:{" "}
-                  <span style={{ color: DIFFICULTY_COLORS[form.difficulty] }}>
+                  <span style={{color:DIFFICULTY_COLORS[form.difficulty]}}>
                     {DIFFICULTY_LABELS[form.difficulty]}
                   </span>
                 </label>
                 <input type="range" min={1} max={5} step={1} value={form.difficulty}
-                  onChange={e => setForm({ ...form, difficulty: +e.target.value })}
+                  onChange={e => setForm({...form, difficulty:+e.target.value})}
                   className="difficulty-slider" />
                 <div className="slider-labels"><span>Łatwy</span><span>Trudny</span></div>
               </div>
@@ -338,6 +352,19 @@ const VocabRow: React.FC<{
 
       {expanded && (
         <div className="vm-row-detail">
+          {/* Sentences */}
+          {word.sentencePl && (
+            <div className="detail-section">
+              <span className="detail-label">🇵🇱 Zdanie PL</span>
+              <div className="detail-sentence">{word.sentencePl}</div>
+            </div>
+          )}
+          {word.sentenceEn && (
+            <div className="detail-section">
+              <span className="detail-label">🇬🇧 Zdanie EN</span>
+              <div className="detail-sentence">{word.sentenceEn}</div>
+            </div>
+          )}
           {/* SRS detail row */}
           <div className="detail-section srs-detail-row">
             <span className="detail-label">SRS</span>

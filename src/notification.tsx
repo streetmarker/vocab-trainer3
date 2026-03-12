@@ -18,10 +18,12 @@ import "./styles/notification.css";
 const appWindow = getCurrentWebviewWindow();
 
 type NotifPayload = {
-  termPl:      string;
-  termEn:      string;
+  termPl:       string;
+  termEn:       string;
   partOfSpeech?: string;
-  wordId:      number;
+  sentencePl?:  string;
+  sentenceEn?:  string;
+  wordId:       number;
 };
 
 function NotificationApp() {
@@ -46,7 +48,6 @@ function NotificationApp() {
   }, []);
 
   if (!payload) {
-    // Empty transparent placeholder while waiting for the event
     return <div style={{ width: "100%", height: "100%", background: "transparent" }} />;
   }
 
@@ -56,6 +57,8 @@ function NotificationApp() {
       termPl={payload.termPl}
       termEn={payload.termEn}
       partOfSpeech={payload.partOfSpeech}
+      sentencePl={payload.sentencePl}
+      sentenceEn={payload.sentenceEn}
       wordId={payload.wordId}
       onDismiss={dismiss}
     />

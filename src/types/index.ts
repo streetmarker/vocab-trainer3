@@ -24,6 +24,8 @@ export interface Word {
   difficulty: 1 | 2 | 3 | 4 | 5;
   createdAt: string;
   isActive: boolean;
+  sentencePl?: string;         // Example sentence in Polish — word bolded on flashcard front
+  sentenceEn?: string;         // Example sentence in English — word bolded on flashcard back
 }
 
 export interface WordProgress {

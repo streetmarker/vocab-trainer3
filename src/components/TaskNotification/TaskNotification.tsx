@@ -15,6 +15,7 @@ type InnerPhase = "idle" | "flipped" | "saving" | "feedback";
 
 type WordState = {
   wordId: number; termPl: string; termEn: string; partOfSpeech?: string;
+  sentencePl?: string | null; sentenceEn?: string | null;
 };
 type FeedbackState = {
   grade: SrsGrade; mastery: string; intervalLabel: string; streak: number;
@@ -30,15 +31,33 @@ const GRADE_ICONS: Record<SrsGrade, string> = {
   again: "↩", hard: "〜", good: "✓", easy: "⚡",
 };
 
+/**
+ * Splits a sentence on the first case-insensitive occurrence of `word`
+ * and returns a React node with that word wrapped in <strong>.
+ * Falls back to plain sentence string if word not found.
+ */
+function boldWord(sentence: string, word: string): React.ReactNode {
+  const idx = sentence.toLowerCase().indexOf(word.toLowerCase());
+  if (idx === -1) return sentence;
+  return (
+    <>
+      {sentence.slice(0, idx)}
+      <strong>{sentence.slice(idx, idx + word.length)}</strong>
+      {sentence.slice(idx + word.length)}
+    </>
+  );
+}
+
 type Props = {
   termPl: string; termEn: string; partOfSpeech?: string;
+  sentencePl?: string | null; sentenceEn?: string | null;
   wordId: number; onDismiss: () => void;
 };
 
-export function TaskNotification({ termPl, termEn, partOfSpeech, wordId, onDismiss }: Props) {
+export function TaskNotification({ termPl, termEn, partOfSpeech, sentencePl, sentenceEn, wordId, onDismiss }: Props) {
   const [slidePhase, setSlidePhase] = useState<SlidePhase>("in");
   const [innerPhase, setInnerPhase] = useState<InnerPhase>("idle");
-  const [word, setWord]             = useState<WordState>({ wordId, termPl, termEn, partOfSpeech });
+  const [word, setWord]             = useState<WordState>({ wordId, termPl, termEn, partOfSpeech, sentencePl, sentenceEn });
   const [feedback, setFeedback]     = useState<FeedbackState | null>(null);
   const [progress, setProgress]     = useState(100);
   const [cardKey, setCardKey]       = useState(0);
@@ -92,6 +111,8 @@ export function TaskNotification({ termPl, termEn, partOfSpeech, wordId, onDismi
             termPl:       result.nextTermPl,
             termEn:       result.nextTermEn,
             partOfSpeech: result.nextPartOfSpeech ?? undefined,
+            sentencePl:   result.nextSentencePl ?? null,
+            sentenceEn:   result.nextSentenceEn ?? null,
           });
           setFeedback(null);
           setInnerPhase("idle");
@@ -172,6 +193,12 @@ export function TaskNotification({ termPl, termEn, partOfSpeech, wordId, onDismi
           key={cardKey}
           front={word.termPl}
           back={word.termEn}
+          frontNode={word.sentencePl
+            ? boldWord(word.sentencePl, word.termEn)
+            : undefined}
+          backNode={word.sentenceEn
+            ? boldWord(word.sentenceEn, word.termEn)
+            : undefined}
           backLabel={word.partOfSpeech}
           hint="kliknij aby zobaczyć po angielsku"
           onFlip={handleCardFlip}

@@ -39,6 +39,8 @@ export const api = {
     antonyms: string[];
     tags: string[];
     difficulty: number;
+    sentencePl?: string;
+    sentenceEn?: string;
   }): Promise<number> => invoke("add_word", word),
 
   deleteWord: (wordId: number): Promise<void> =>
@@ -117,11 +119,13 @@ export const api = {
     newIntervalDays:   number;
     newEasiness:       number;
     streak:            number;
-    nextReviewLabel:   string;   // human-readable, e.g. "za 6 dni"
+    nextReviewLabel:   string;
     nextWordId:        number | null;
     nextTermPl:        string | null;
     nextTermEn:        string | null;
     nextPartOfSpeech:  string | null;
+    nextSentencePl:    string | null;
+    nextSentenceEn:    string | null;
   }> => invoke("srs_answer", { wordId, grade }),
 
   flashcardAnswer: (wordId: number, decision: "known" | "practice"): Promise<{
@@ -165,6 +169,8 @@ export interface WordWithProgress {
   phonetic?:     string;
   difficulty:    number;
   tags:          string[];
+  sentencePl?:   string;
+  sentenceEn?:   string;
   // SRS
   masteryLevel:  SrsMastery;
   repetitions:   number;

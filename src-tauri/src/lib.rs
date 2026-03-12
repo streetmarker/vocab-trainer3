@@ -42,9 +42,11 @@ pub fn show_task_notification(app: &tauri::AppHandle, word: &db::Word) {
     let term_pl = word.definition_pl
         .clone()
         .unwrap_or_else(|| word.definition.chars().take(60).collect());
-    let term_en      = word.term.clone();
+    let term_en        = word.term.clone();
     let part_of_speech = word.part_of_speech.clone();
-    let word_id      = word.id;
+    let sentence_pl    = word.sentence_pl.clone();
+    let sentence_en    = word.sentence_en.clone();
+    let word_id        = word.id;
 
     // ── Get existing window or create it now ─────────────────────────────────
     let notif = if let Some(w) = app.get_webview_window(LABEL) {
@@ -103,10 +105,12 @@ pub fn show_task_notification(app: &tauri::AppHandle, word: &db::Word) {
             LABEL,
             "task-notification",
             serde_json::json!({
-                "termPl":      term_pl,
-                "termEn":      term_en,
+                "termPl":       term_pl,
+                "termEn":       term_en,
                 "partOfSpeech": part_of_speech,
-                "wordId":      word_id,
+                "sentencePl":   sentence_pl,
+                "sentenceEn":   sentence_en,
+                "wordId":       word_id,
             }),
         );
         if let Some(w) = app_clone.get_webview_window(LABEL) {
@@ -287,7 +291,7 @@ pub fn run() {
             commands::get_activity_grid,
             commands::get_scheduler_status,
             commands::set_scheduler_paused,
-            commands::seed_sample_words,
+            // commands::seed_sample_words,
             commands::get_settings,
             commands::save_settings,
             commands::get_popup_exercise,

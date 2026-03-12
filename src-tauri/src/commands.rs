@@ -89,17 +89,17 @@ pub struct WordWithProgress {
     pub phonetic:       Option<String>,
     pub difficulty:     i32,
     pub tags:           Vec<String>,
+    pub sentence_pl:    Option<String>,
+    pub sentence_en:    Option<String>,
     // SRS progress (None if word has never been reviewed)
-    pub mastery_level:  String,       // "new" | "learning" | "reviewing" | "mastered"
+    pub mastery_level:  String,
     pub repetitions:    i32,
     pub interval_days:  f64,
     pub ease_factor:    f64,
     pub streak:         i32,
     pub total_reviews:  i32,
-    /// ISO-8601 string, e.g. "2025-03-15T14:00:00Z"
     pub next_review_at: Option<String>,
     pub last_review_at: Option<String>,
-    /// "overdue" | "today" | "future" | "never"
     pub review_status:  String,
 }
 
@@ -159,6 +159,8 @@ pub async fn get_srs_overview(state: State<'_, AppState>) -> Result<SrsOverview,
             phonetic:       word.phonetic.clone(),
             difficulty:     word.difficulty,
             tags:           word.tags.clone(),
+            sentence_pl:    word.sentence_pl.clone(),
+            sentence_en:    word.sentence_en.clone(),
             mastery_level:  p.mastery_level.as_str().to_string(),
             repetitions:    p.repetitions,
             interval_days:  p.interval_days,
@@ -195,6 +197,8 @@ pub async fn add_word(
     antonyms: Vec<String>,
     tags: Vec<String>,
     difficulty: i32,
+    sentence_pl: Option<String>,
+    sentence_en: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<i64, String> {
     let word = Word {
@@ -211,6 +215,8 @@ pub async fn add_word(
         difficulty: difficulty.clamp(1, 5),
         created_at: chrono::Utc::now(),
         is_active: true,
+        sentence_pl,
+        sentence_en,
     };
     state.db.insert_word(&word).map_err(|e| e.to_string())
 }
@@ -280,111 +286,111 @@ pub async fn set_scheduler_paused(
 
 // ─── Seed Data Command ────────────────────────────────────────────────────────
 
-#[tauri::command]
-pub async fn seed_sample_words(state: State<'_, AppState>) -> Result<i32, String> {
-    let words = sample_words();
-    let mut count = 0;
-    for word in words {
-        if state.db.insert_word(&word).is_ok() {
-            count += 1;
-        }
-    }
-    Ok(count)
-}
+// #[tauri::command]
+// pub async fn seed_sample_words(state: State<'_, AppState>) -> Result<i32, String> {
+//     let words = sample_words();
+//     let mut count = 0;
+//     for word in words {
+//         if state.db.insert_word(&word).is_ok() {
+//             count += 1;
+//         }
+//     }
+//     Ok(count)
+// }
 
-fn sample_words() -> Vec<Word> {
-    let now = chrono::Utc::now();
-    vec![
-        Word {
-            id: 0, term: "ephemeral".to_string(),
-            definition: "Lasting for a very short time; transitory".to_string(),
-            definition_pl: Some("Krótkotrwały, nietrwały, przemijający — istniejący tylko przez chwilę".to_string()),
-            part_of_speech: "adjective".to_string(),
-            phonetic: Some("/ɪˈfem.ər.əl/".to_string()),
-            examples: vec!["The ephemeral beauty of cherry blossoms makes them all the more precious.".to_string()],
-            synonyms: vec!["transient".to_string(), "fleeting".to_string(), "momentary".to_string()],
-            antonyms: vec!["permanent".to_string(), "enduring".to_string()],
-            tags: vec!["common".to_string()], difficulty: 3, created_at: now, is_active: true,
-        },
-        Word {
-            id: 0, term: "ubiquitous".to_string(),
-            definition: "Present, appearing, or found everywhere".to_string(),
-            definition_pl: Some("Wszechobecny, spotykany wszędzie — coś, co jest w każdym miejscu jednocześnie".to_string()),
-            part_of_speech: "adjective".to_string(),
-            phonetic: Some("/juːˈbɪk.wɪ.təs/".to_string()),
-            examples: vec!["Smartphones have become ubiquitous in modern society.".to_string()],
-            synonyms: vec!["omnipresent".to_string(), "pervasive".to_string()],
-            antonyms: vec!["rare".to_string(), "scarce".to_string()],
-            tags: vec!["common".to_string()], difficulty: 3, created_at: now, is_active: true,
-        },
-        Word {
-            id: 0, term: "serendipity".to_string(),
-            definition: "The occurrence of fortunate events by accident or chance".to_string(),
-            definition_pl: Some("Szczęśliwy przypadek — odkrycie czegoś wartościowego przez zrządzenie losu, bez szukania".to_string()),
-            part_of_speech: "noun".to_string(),
-            phonetic: Some("/ˌser.ənˈdɪp.ɪ.ti/".to_string()),
-            examples: vec!["It was pure serendipity that they met at the coffee shop that day.".to_string()],
-            synonyms: vec!["luck".to_string(), "fortune".to_string(), "chance".to_string()],
-            antonyms: vec!["misfortune".to_string()],
-            tags: vec!["popular".to_string()], difficulty: 2, created_at: now, is_active: true,
-        },
-        Word {
-            id: 0, term: "perspicacious".to_string(),
-            definition: "Having a ready insight into things; shrewd".to_string(),
-            definition_pl: Some("Przenikliwy, bystrzy — ktoś, kto szybko rozumie i trafnie ocenia sytuacje".to_string()),
-            part_of_speech: "adjective".to_string(),
-            phonetic: Some("/ˌpɜːr.spɪˈkeɪ.ʃəs/".to_string()),
-            examples: vec!["The perspicacious investor saw the company's potential before anyone else.".to_string()],
-            synonyms: vec!["astute".to_string(), "shrewd".to_string(), "perceptive".to_string()],
-            antonyms: vec!["obtuse".to_string(), "dim-witted".to_string()],
-            tags: vec!["advanced".to_string()], difficulty: 5, created_at: now, is_active: true,
-        },
-        Word {
-            id: 0, term: "mellifluous".to_string(),
-            definition: "Sweet or musical; pleasant to hear".to_string(),
-            definition_pl: Some("Melodyjny, słodki w brzmieniu — dźwięk lub głos, który przyjemnie brzmi dla uszu".to_string()),
-            part_of_speech: "adjective".to_string(),
-            phonetic: Some("/məˈlɪf.lu.əs/".to_string()),
-            examples: vec!["Her mellifluous voice filled the concert hall with warmth.".to_string()],
-            synonyms: vec!["dulcet".to_string(), "harmonious".to_string(), "melodious".to_string()],
-            antonyms: vec!["harsh".to_string(), "discordant".to_string()],
-            tags: vec!["literary".to_string()], difficulty: 4, created_at: now, is_active: true,
-        },
-        Word {
-            id: 0, term: "pragmatic".to_string(),
-            definition: "Dealing with things sensibly and realistically".to_string(),
-            definition_pl: Some("Pragmatyczny, praktyczny — skupiony na tym, co działa w rzeczywistości, bez niepotrzebnego idealizmu".to_string()),
-            part_of_speech: "adjective".to_string(),
-            phonetic: Some("/præɡˈmæt.ɪk/".to_string()),
-            examples: vec!["She took a pragmatic approach to solving the budget crisis.".to_string()],
-            synonyms: vec!["practical".to_string(), "sensible".to_string(), "realistic".to_string()],
-            antonyms: vec!["idealistic".to_string(), "impractical".to_string()],
-            tags: vec!["common".to_string()], difficulty: 2, created_at: now, is_active: true,
-        },
-        Word {
-            id: 0, term: "inimical".to_string(),
-            definition: "Tending to obstruct or harm; hostile or unfriendly".to_string(),
-            definition_pl: Some("Wrogi, szkodliwy — coś lub ktoś, kto działa przeciwko czemuś lub komuś, utrudniając lub niszcząc".to_string()),
-            part_of_speech: "adjective".to_string(),
-            phonetic: Some("/ɪˈnɪm.ɪ.kəl/".to_string()),
-            examples: vec!["Such policies are inimical to economic growth.".to_string()],
-            synonyms: vec!["hostile".to_string(), "antagonistic".to_string(), "adverse".to_string()],
-            antonyms: vec!["friendly".to_string(), "beneficial".to_string()],
-            tags: vec!["formal".to_string()], difficulty: 4, created_at: now, is_active: true,
-        },
-        Word {
-            id: 0, term: "loquacious".to_string(),
-            definition: "Tending to talk a great deal; talkative".to_string(),
-            definition_pl: Some("Gadatliwy, wielomówny — osoba, która dużo i chętnie mówi, często za dużo".to_string()),
-            part_of_speech: "adjective".to_string(),
-            phonetic: Some("/ləʊˈkweɪ.ʃəs/".to_string()),
-            examples: vec!["The loquacious professor often ran over time with his lectures.".to_string()],
-            synonyms: vec!["talkative".to_string(), "garrulous".to_string(), "voluble".to_string()],
-            antonyms: vec!["taciturn".to_string(), "reticent".to_string()],
-            tags: vec!["character".to_string()], difficulty: 3, created_at: now, is_active: true,
-        },
-    ]
-}
+// fn sample_words() -> Vec<Word> {
+//     let now = chrono::Utc::now();
+//     vec![
+        // Word {
+//             id: 0, term: "ephemeral".to_string(),
+//             definition: "Lasting for a very short time; transitory".to_string(),
+//             definition_pl: Some("Krótkotrwały, nietrwały, przemijający — istniejący tylko przez chwilę".to_string()),
+//             part_of_speech: "adjective".to_string(),
+//             phonetic: Some("/ɪˈfem.ər.əl/".to_string()),
+//             examples: vec!["The ephemeral beauty of cherry blossoms makes them all the more precious.".to_string()],
+//             synonyms: vec!["transient".to_string(), "fleeting".to_string(), "momentary".to_string()],
+//             antonyms: vec!["permanent".to_string(), "enduring".to_string()],
+//             tags: vec!["common".to_string()], difficulty: 3, created_at: now, is_active: true,
+//         },
+//         Word {
+//             id: 0, term: "ubiquitous".to_string(),
+//             definition: "Present, appearing, or found everywhere".to_string(),
+//             definition_pl: Some("Wszechobecny, spotykany wszędzie — coś, co jest w każdym miejscu jednocześnie".to_string()),
+//             part_of_speech: "adjective".to_string(),
+//             phonetic: Some("/juːˈbɪk.wɪ.təs/".to_string()),
+//             examples: vec!["Smartphones have become ubiquitous in modern society.".to_string()],
+//             synonyms: vec!["omnipresent".to_string(), "pervasive".to_string()],
+//             antonyms: vec!["rare".to_string(), "scarce".to_string()],
+//             tags: vec!["common".to_string()], difficulty: 3, created_at: now, is_active: true,
+//         },
+//         Word {
+//             id: 0, term: "serendipity".to_string(),
+//             definition: "The occurrence of fortunate events by accident or chance".to_string(),
+//             definition_pl: Some("Szczęśliwy przypadek — odkrycie czegoś wartościowego przez zrządzenie losu, bez szukania".to_string()),
+//             part_of_speech: "noun".to_string(),
+//             phonetic: Some("/ˌser.ənˈdɪp.ɪ.ti/".to_string()),
+//             examples: vec!["It was pure serendipity that they met at the coffee shop that day.".to_string()],
+//             synonyms: vec!["luck".to_string(), "fortune".to_string(), "chance".to_string()],
+//             antonyms: vec!["misfortune".to_string()],
+//             tags: vec!["popular".to_string()], difficulty: 2, created_at: now, is_active: true,
+//         },
+//         Word {
+//             id: 0, term: "perspicacious".to_string(),
+//             definition: "Having a ready insight into things; shrewd".to_string(),
+//             definition_pl: Some("Przenikliwy, bystrzy — ktoś, kto szybko rozumie i trafnie ocenia sytuacje".to_string()),
+//             part_of_speech: "adjective".to_string(),
+//             phonetic: Some("/ˌpɜːr.spɪˈkeɪ.ʃəs/".to_string()),
+//             examples: vec!["The perspicacious investor saw the company's potential before anyone else.".to_string()],
+//             synonyms: vec!["astute".to_string(), "shrewd".to_string(), "perceptive".to_string()],
+//             antonyms: vec!["obtuse".to_string(), "dim-witted".to_string()],
+//             tags: vec!["advanced".to_string()], difficulty: 5, created_at: now, is_active: true,
+//         },
+//         Word {
+//             id: 0, term: "mellifluous".to_string(),
+//             definition: "Sweet or musical; pleasant to hear".to_string(),
+//             definition_pl: Some("Melodyjny, słodki w brzmieniu — dźwięk lub głos, który przyjemnie brzmi dla uszu".to_string()),
+//             part_of_speech: "adjective".to_string(),
+//             phonetic: Some("/məˈlɪf.lu.əs/".to_string()),
+//             examples: vec!["Her mellifluous voice filled the concert hall with warmth.".to_string()],
+//             synonyms: vec!["dulcet".to_string(), "harmonious".to_string(), "melodious".to_string()],
+//             antonyms: vec!["harsh".to_string(), "discordant".to_string()],
+//             tags: vec!["literary".to_string()], difficulty: 4, created_at: now, is_active: true,
+//         },
+//         Word {
+//             id: 0, term: "pragmatic".to_string(),
+//             definition: "Dealing with things sensibly and realistically".to_string(),
+//             definition_pl: Some("Pragmatyczny, praktyczny — skupiony na tym, co działa w rzeczywistości, bez niepotrzebnego idealizmu".to_string()),
+//             part_of_speech: "adjective".to_string(),
+//             phonetic: Some("/præɡˈmæt.ɪk/".to_string()),
+//             examples: vec!["She took a pragmatic approach to solving the budget crisis.".to_string()],
+//             synonyms: vec!["practical".to_string(), "sensible".to_string(), "realistic".to_string()],
+//             antonyms: vec!["idealistic".to_string(), "impractical".to_string()],
+//             tags: vec!["common".to_string()], difficulty: 2, created_at: now, is_active: true,
+//         },
+//         Word {
+//             id: 0, term: "inimical".to_string(),
+//             definition: "Tending to obstruct or harm; hostile or unfriendly".to_string(),
+//             definition_pl: Some("Wrogi, szkodliwy — coś lub ktoś, kto działa przeciwko czemuś lub komuś, utrudniając lub niszcząc".to_string()),
+//             part_of_speech: "adjective".to_string(),
+//             phonetic: Some("/ɪˈnɪm.ɪ.kəl/".to_string()),
+//             examples: vec!["Such policies are inimical to economic growth.".to_string()],
+//             synonyms: vec!["hostile".to_string(), "antagonistic".to_string(), "adverse".to_string()],
+//             antonyms: vec!["friendly".to_string(), "beneficial".to_string()],
+//             tags: vec!["formal".to_string()], difficulty: 4, created_at: now, is_active: true,
+//         },
+//         Word {
+//             id: 0, term: "loquacious".to_string(),
+//             definition: "Tending to talk a great deal; talkative".to_string(),
+//             definition_pl: Some("Gadatliwy, wielomówny — osoba, która dużo i chętnie mówi, często za dużo".to_string()),
+//             part_of_speech: "adjective".to_string(),
+//             phonetic: Some("/ləʊˈkweɪ.ʃəs/".to_string()),
+//             examples: vec!["The loquacious professor often ran over time with his lectures.".to_string()],
+//             synonyms: vec!["talkative".to_string(), "garrulous".to_string(), "voluble".to_string()],
+//             antonyms: vec!["taciturn".to_string(), "reticent".to_string()],
+//             tags: vec!["character".to_string()], difficulty: 3, created_at: now, is_active: true,
+//         },
+//     ]
+// }
 
 // ─── Settings Commands ────────────────────────────────────────────────────────
 
@@ -620,6 +626,8 @@ pub struct SrsResult {
     pub next_term_pl:         Option<String>,
     pub next_term_en:         Option<String>,
     pub next_part_of_speech:  Option<String>,
+    pub next_sentence_pl:     Option<String>,
+    pub next_sentence_en:     Option<String>,
 }
 
 /// Format a fractional-day interval into a Polish human-readable string.
@@ -681,13 +689,15 @@ pub async fn srs_answer(
         .get_next_flashcard_word(Some(word_id))
         .map_err(|e| e.to_string())?;
 
-    let (next_word_id, next_term_pl, next_term_en, next_part_of_speech) = match next {
+    let (next_word_id, next_term_pl, next_term_en, next_part_of_speech,
+         next_sentence_pl, next_sentence_en) = match next {
         Some((w, _)) => {
             let term_pl = w.definition_pl.clone()
                 .unwrap_or_else(|| w.definition.chars().take(60).collect());
-            (Some(w.id), Some(term_pl), Some(w.term.clone()), Some(w.part_of_speech.clone()))
+            (Some(w.id), Some(term_pl), Some(w.term.clone()), Some(w.part_of_speech.clone()),
+             w.sentence_pl.clone(), w.sentence_en.clone())
         }
-        None => (None, None, None, None),
+        None => (None, None, None, None, None, None),
     };
 
     Ok(SrsResult {
@@ -702,6 +712,8 @@ pub async fn srs_answer(
         next_term_pl,
         next_term_en,
         next_part_of_speech,
+        next_sentence_pl,
+        next_sentence_en,
     })
 }
 
@@ -753,6 +765,8 @@ pub struct ImportedWord {
     #[serde(default)] pub antonyms:        Vec<String>,
     #[serde(default)] pub tags:            Vec<String>,
     #[serde(default)] pub difficulty:      Option<i32>,
+    #[serde(default, rename = "zdaniePL")] pub sentence_pl: Option<String>,
+    #[serde(default, rename = "zdanieEN")] pub sentence_en: Option<String>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -816,6 +830,8 @@ pub async fn import_words_from_json(
             difficulty,
             created_at:     chrono::Utc::now(),
             is_active:      true,
+            sentence_pl:    item.sentence_pl,
+            sentence_en:    item.sentence_en,
         };
 
         // ── Insert; detect UNIQUE constraint violation = duplicate ────────────

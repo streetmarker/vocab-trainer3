@@ -34,16 +34,19 @@ interface Props {
   back:         string;
   hint?:        string;
   backLabel?:   string;
+  /** Optional rich content overriding plain text on front (e.g. sentence with bold word) */
+  frontNode?:   React.ReactNode;
+  /** Optional rich content overriding plain text on back */
+  backNode?:    React.ReactNode;
   onFlip?:      () => void;
   onAnswer?:    (grade: SrsGrade) => void;
-  /** Locks card during async save / feedback display */
   disabled?:    boolean;
-  /** Optional per-grade interval preview, e.g. { again: "10 min", hard: "1 dzień", … } */
   intervalHints?: Partial<Record<SrsGrade, string>>;
 }
 
 export function Flashcard({
   front, back, hint, backLabel,
+  frontNode, backNode,
   onFlip, onAnswer,
   disabled = false,
   intervalHints,
@@ -90,7 +93,10 @@ export function Flashcard({
           {/* Front */}
           <div className="fc-face fc-face--front" aria-hidden={isFlipped}>
             <span className="fc-lang-badge">🇵🇱</span>
-            <span className="fc-word">{front}</span>
+            {frontNode
+              ? <span className="fc-word fc-word--sentence">{frontNode}</span>
+              : <span className="fc-word">{front}</span>
+            }
             {hint && <span className="fc-hint">{hint}</span>}
             <span className="fc-flip-cue" aria-hidden>↻</span>
           </div>
@@ -98,7 +104,10 @@ export function Flashcard({
           <div className="fc-face fc-face--back" aria-hidden={!isFlipped}>
             <span className="fc-lang-badge">🇬🇧</span>
             {backLabel && <span className="fc-back-label">{backLabel}</span>}
-            <span className="fc-word fc-word--back">{back}</span>
+            {backNode
+              ? <span className="fc-word fc-word--back fc-word--sentence">{backNode}</span>
+              : <span className="fc-word fc-word--back">{back}</span>
+            }
           </div>
         </div>
       </div>
