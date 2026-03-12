@@ -287,6 +287,7 @@ pub fn run() {
             commands::get_current_word,
             commands::task_notification_done,
             commands::task_notification_later,
+            commands::import_words_from_json,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

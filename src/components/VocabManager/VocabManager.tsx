@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import type { Word, PartOfSpeech } from "../../types";
 import { DIFFICULTY_LABELS, DIFFICULTY_COLORS, PART_OF_SPEECH_LABELS } from "../../types";
 import { api } from "../../hooks/useTauri";
+import { ImportWords } from "../ImportWords/ImportWords";
 import "./VocabManager.css";
 
 const POS_OPTIONS: PartOfSpeech[] = [
@@ -117,6 +118,7 @@ export const VocabManager: React.FC = () => {
           )}
         </div>
         <div className="vm-actions">
+          <ImportWords onImportDone={loadWords} />
           <button className="btn-secondary" onClick={handleSeed} disabled={seeding}>
             {seeding ? "Dodawanie…" : "Załaduj przykłady"}
           </button>

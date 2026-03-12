@@ -85,13 +85,13 @@ export const api = {
 
   hidePopup: (): Promise<void> => invoke("hide_popup"),
 
-  getPopupExercise: (): Promise<import("./types").Exercise | null> =>
+  getPopupExercise: (): Promise<import("../types").Exercise | null> =>
     invoke("get_popup_exercise"),
 
   triggerPopup: (): Promise<boolean> =>
     invoke("trigger_popup"),
 
-  getCurrentWord: (): Promise<import("./types").Word | null> =>
+  getCurrentWord: (): Promise<import("../types").Word | null> =>
     invoke("get_current_word"),
 
   taskNotificationDone: (wordId: number): Promise<void> =>
@@ -99,6 +99,12 @@ export const api = {
 
   taskNotificationLater: (wordId: number): Promise<void> =>
     invoke("task_notification_later", { wordId }),
+
+  importWordsFromJson: (json: string): Promise<{
+    added: number;
+    skipped: number;
+    warnings: string[];
+  }> => invoke("import_words_from_json", { json }),
 };
 
 export function useTauriEvent<T = unknown>(

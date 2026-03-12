@@ -426,3 +426,106 @@ pub async fn task_notification_later(
     state.scheduler.record_popup_dismissed(false);
     Ok(())
 }
+
+// ─── JSON Import ──────────────────────────────────────────────────────────────
+
+/// Minimal structure expected in an imported JSON file.
+/// All fields except `term` and `definition` are optional — missing values
+/// fall back to sensible defaults so partial data still imports cleanly.
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportedWord {
+    pub term:            String,
+    pub definition:      String,
+    #[serde(default)] pub definition_pl:   Option<String>,
+    #[serde(default)] pub part_of_speech:  Option<String>,
+    #[serde(default)] pub phonetic:        Option<String>,
+    #[serde(default)] pub examples:        Vec<String>,
+    #[serde(default)] pub synonyms:        Vec<String>,
+    #[serde(default)] pub antonyms:        Vec<String>,
+    #[serde(default)] pub tags:            Vec<String>,
+    #[serde(default)] pub difficulty:      Option<i32>,
+}
+
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportResult {
+    pub added:    usize,
+    pub skipped:  usize,
+    pub warnings: Vec<String>,
+}
+
+#[tauri::command]
+pub async fn import_words_from_json(
+    json: String,
+    state: State<'_, AppState>,
+) -> Result<ImportResult, String> {
+    // ── Parse JSON ────────────────────────────────────────────────────────────
+    let items: Vec<ImportedWord> = serde_json::from_str(&json)
+        .map_err(|e| format!("Niepoprawny format JSON: {}", e))?;
+
+    if items.is_empty() {
+        return Ok(ImportResult { added: 0, skipped: 0, warnings: vec!["Plik JSON jest pusty.".into()] });
+    }
+
+    let mut added    = 0usize;
+    let mut skipped  = 0usize;
+    let mut warnings = Vec::new();
+
+    for (i, item) in items.into_iter().enumerate() {
+        let label = format!("#{} \"{}\"", i + 1, item.term);
+
+        // ── Validate required fields ──────────────────────────────────────────
+        let term = item.term.trim().to_string();
+        let definition = item.definition.trim().to_string();
+
+        if term.is_empty() {
+            warnings.push(format!("{}: pominięto — brak pola `term`", label));
+            skipped += 1;
+            continue;
+        }
+        if definition.is_empty() {
+            warnings.push(format!("{}: pominięto — brak pola `definition`", label));
+            skipped += 1;
+            continue;
+        }
+
+        let difficulty = item.difficulty
+            .map(|d| d.clamp(1, 5))
+            .unwrap_or(2);
+
+        let word = crate::db::Word {
+            id: 0,
+            term,
+            definition,
+            definition_pl:  item.definition_pl,
+            part_of_speech: item.part_of_speech.unwrap_or_else(|| "noun".to_string()),
+            phonetic:       item.phonetic,
+            examples:       item.examples,
+            synonyms:       item.synonyms,
+            antonyms:       item.antonyms,
+            tags:           item.tags,
+            difficulty,
+            created_at:     chrono::Utc::now(),
+            is_active:      true,
+        };
+
+        // ── Insert; detect UNIQUE constraint violation = duplicate ────────────
+        match state.db.insert_word(&word) {
+            Ok(_)  => { added += 1; }
+            Err(e) => {
+                let msg = e.to_string();
+                if msg.contains("UNIQUE") || msg.contains("unique") {
+                    warnings.push(format!("{}: pominięto — duplikat (słowo już istnieje)", label));
+                    skipped += 1;
+                } else {
+                    warnings.push(format!("{}: błąd zapisu — {}", label, msg));
+                    skipped += 1;
+                }
+            }
+        }
+    }
+
+    log::info!("import_words_from_json: added={} skipped={}", added, skipped);
+    Ok(ImportResult { added, skipped, warnings })
+}
