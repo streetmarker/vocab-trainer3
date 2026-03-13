@@ -124,6 +124,7 @@ export const api = {
     nextTermPl:        string | null;
     nextTermEn:        string | null;
     nextPartOfSpeech:  string | null;
+    nextPhonetic:      string | null;
     nextSentencePl:    string | null;
     nextSentenceEn:    string | null;
   }> => invoke("srs_answer", { wordId, grade }),

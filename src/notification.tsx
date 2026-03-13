@@ -21,6 +21,7 @@ type NotifPayload = {
   termPl:       string;
   termEn:       string;
   partOfSpeech?: string;
+  phonetic?:    string;
   sentencePl?:  string;
   sentenceEn?:  string;
   wordId:       number;
@@ -57,6 +58,7 @@ function NotificationApp() {
       termPl={payload.termPl}
       termEn={payload.termEn}
       partOfSpeech={payload.partOfSpeech}
+      phonetic={payload.phonetic}
       sentencePl={payload.sentencePl}
       sentenceEn={payload.sentenceEn}
       wordId={payload.wordId}

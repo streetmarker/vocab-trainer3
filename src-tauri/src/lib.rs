@@ -38,12 +38,12 @@ pub fn show_task_notification(app: &tauri::AppHandle, word: &db::Word) {
     // After flip: actions collapse, answers expand — total stays ~262px
     const WIN_H: f64  = 201.0;
 
-    // Front of card: Polish definition. Fall back to English definition if not set.
-    let term_pl = word.definition_pl
-        .clone()
+    // termPl = Polish definition shown bold on flashcard front
+    let term_pl        = word.definition_pl.clone()
         .unwrap_or_else(|| word.definition.chars().take(60).collect());
     let term_en        = word.term.clone();
     let part_of_speech = word.part_of_speech.clone();
+    let phonetic       = word.phonetic.clone();
     let sentence_pl    = word.sentence_pl.clone();
     let sentence_en    = word.sentence_en.clone();
     let word_id        = word.id;
@@ -108,6 +108,7 @@ pub fn show_task_notification(app: &tauri::AppHandle, word: &db::Word) {
                 "termPl":       term_pl,
                 "termEn":       term_en,
                 "partOfSpeech": part_of_speech,
+                "phonetic":     phonetic,
                 "sentencePl":   sentence_pl,
                 "sentenceEn":   sentence_en,
                 "wordId":       word_id,
@@ -291,7 +292,7 @@ pub fn run() {
             commands::get_activity_grid,
             commands::get_scheduler_status,
             commands::set_scheduler_paused,
-            // commands::seed_sample_words,
+            commands::seed_sample_words,
             commands::get_settings,
             commands::save_settings,
             commands::get_popup_exercise,

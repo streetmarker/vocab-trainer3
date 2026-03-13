@@ -15,6 +15,7 @@ type InnerPhase = "idle" | "flipped" | "saving" | "feedback";
 
 type WordState = {
   wordId: number; termPl: string; termEn: string; partOfSpeech?: string;
+  phonetic?: string | null;
   sentencePl?: string | null; sentenceEn?: string | null;
 };
 type FeedbackState = {
@@ -32,32 +33,36 @@ const GRADE_ICONS: Record<SrsGrade, string> = {
 };
 
 /**
- * Splits a sentence on the first case-insensitive occurrence of `word`
- * and returns a React node with that word wrapped in <strong>.
- * Falls back to plain sentence string if word not found.
+/**
+ * Parses **text** markers and returns a React node with those segments
+ * wrapped in <strong>. Renders all occurrences. Falls back to plain text
+ * if no markers are found.
  */
-function boldWord(sentence: string, word: string): React.ReactNode {
-  const idx = sentence.toLowerCase().indexOf(word.toLowerCase());
-  if (idx === -1) return sentence;
+function parseBold(sentence: string): React.ReactNode {
+  if (!sentence.includes("**")) return sentence;
+  const parts = sentence.split(/(\*\*[^*]+\*\*)/g);
   return (
     <>
-      {sentence.slice(0, idx)}
-      <strong>{sentence.slice(idx, idx + word.length)}</strong>
-      {sentence.slice(idx + word.length)}
+      {parts.map((part, i) =>
+        part.startsWith("**") && part.endsWith("**")
+          ? <strong key={i}>{part.slice(2, -2)}</strong>
+          : part
+      )}
     </>
   );
 }
 
 type Props = {
   termPl: string; termEn: string; partOfSpeech?: string;
+  phonetic?: string | null;
   sentencePl?: string | null; sentenceEn?: string | null;
   wordId: number; onDismiss: () => void;
 };
 
-export function TaskNotification({ termPl, termEn, partOfSpeech, sentencePl, sentenceEn, wordId, onDismiss }: Props) {
+export function TaskNotification({ termPl, termEn, partOfSpeech, phonetic, sentencePl, sentenceEn, wordId, onDismiss }: Props) {
   const [slidePhase, setSlidePhase] = useState<SlidePhase>("in");
   const [innerPhase, setInnerPhase] = useState<InnerPhase>("idle");
-  const [word, setWord]             = useState<WordState>({ wordId, termPl, termEn, partOfSpeech, sentencePl, sentenceEn });
+  const [word, setWord]             = useState<WordState>({ wordId, termPl, termEn, partOfSpeech, phonetic, sentencePl, sentenceEn });
   const [feedback, setFeedback]     = useState<FeedbackState | null>(null);
   const [progress, setProgress]     = useState(100);
   const [cardKey, setCardKey]       = useState(0);
@@ -111,6 +116,7 @@ export function TaskNotification({ termPl, termEn, partOfSpeech, sentencePl, sen
             termPl:       result.nextTermPl,
             termEn:       result.nextTermEn,
             partOfSpeech: result.nextPartOfSpeech ?? undefined,
+            phonetic:     result.nextPhonetic ?? null,
             sentencePl:   result.nextSentencePl ?? null,
             sentenceEn:   result.nextSentenceEn ?? null,
           });
@@ -191,15 +197,24 @@ export function TaskNotification({ termPl, termEn, partOfSpeech, sentencePl, sen
       <div className="tn-card-wrap">
         <Flashcard
           key={cardKey}
-          front={word.termPl}
+          front={word.termEn}
           back={word.termEn}
-          frontNode={word.sentencePl
-            ? boldWord(word.sentencePl, word.termEn)
-            : undefined}
-          backNode={word.sentenceEn
-            ? boldWord(word.sentenceEn, word.termEn)
-            : undefined}
-          backLabel={word.partOfSpeech}
+          frontNode={
+            <div className="fc-front-rich">
+              <strong className="fc-front-definition">{word.termPl}</strong>
+              <div className="fc-front-sentence">{parseBold(word.sentencePl ?? "")}</div>
+            </div>
+          }
+          backNode={
+            <div className="fc-back-rich">
+              <div className="fc-back-header">
+                <span className="fc-back-term">{word.termEn}</span>
+                {word.phonetic && <span className="fc-back-phonetic">{word.phonetic}</span>}
+                {word.partOfSpeech && <span className="fc-back-pos">{word.partOfSpeech}</span>}
+              </div>
+              <div className="fc-back-sentence">{parseBold(word.sentenceEn ?? "")}</div>
+            </div>
+          }
           hint="kliknij aby zobaczyć po angielsku"
           onFlip={handleCardFlip}
           onAnswer={handleGrade}

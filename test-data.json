@@ -1,20 +1,162 @@
 [
-  
   {
-    "term": "follow up",
-    "sentencePl": "Nadgonić",
-    "sentenceEn": "To follow up",
-    "definition": "To take further action after an earlier discussion or task",
-    "definitionPl": "wrócić do tematu / podjąć dalsze działania",
-    "partOfSpeech": "phrasal verb",
-    "phonetic": "/ˈfɒl.əʊ ʌp/",
-    "difficulty": 2,
+    "term": "feasible",
+    "definition": "Possible to do or achieve successfully",
+    "definitionPl": "wykonalny",
+    "partOfSpeech": "adjective",
+    "phonetic": "/ˈfiː.zə.bəl/",
+    "difficulty": 3,
+    "zdaniePL": "Musimy sprawdzić, czy to rozwiązanie jest **wykonalne** przed rozpoczęciem projektu.",
+    "zdanieEN": "We need to confirm whether the solution is **feasible** before starting the implementation.",
     "examples": [
-      "I'll follow up with the client tomorrow.",
-      "Let me follow up on the action items from the meeting."
+      "The proposed solution seems technically feasible."
     ],
-    "synonyms": ["check", "continue"],
-    "antonyms": ["ignore", "drop"],
-    "tags": ["B2", "business", "communication"]
+    "synonyms": ["viable", "practical"],
+    "antonyms": ["impossible", "unworkable"],
+    "tags": ["B2", "business", "analysis"]
+  },
+  {
+    "term": "implication",
+    "definition": "A possible effect or consequence of an action or decision",
+    "definitionPl": "implikacja",
+    "partOfSpeech": "noun",
+    "phonetic": "/ˌɪm.plɪˈkeɪ.ʃən/",
+    "difficulty": 4,
+    "zdaniePL": "Ta zmiana może mieć poważne **implikacje** dla całego procesu.",
+    "zdanieEN": "This change may have serious **implications** for the overall workflow.",
+    "examples": [
+      "We must consider the implications before approving the request."
+    ],
+    "synonyms": ["consequence", "effect"],
+    "antonyms": ["cause"],
+    "tags": ["C1", "analysis", "decision"]
+  },
+  {
+    "term": "mitigate",
+    "definition": "To reduce the severity or impact of something",
+    "definitionPl": "łagodzić",
+    "partOfSpeech": "verb",
+    "phonetic": "/ˈmɪt.ɪ.ɡeɪt/",
+    "difficulty": 4,
+    "zdaniePL": "Musimy **łagodzić** ryzyko związane z integracją systemów.",
+    "zdanieEN": "We need to **mitigate** the risks associated with the system integration.",
+    "examples": [
+      "Additional testing can mitigate potential issues."
+    ],
+    "synonyms": ["reduce", "alleviate"],
+    "antonyms": ["worsen", "intensify"],
+    "tags": ["C1", "risk", "project"]
+  },
+  {
+    "term": "streamline",
+    "definition": "To improve a process by making it simpler and more efficient",
+    "definitionPl": "usprawniać",
+    "partOfSpeech": "verb",
+    "phonetic": "/ˈstriːm.laɪn/",
+    "difficulty": 4,
+    "zdaniePL": "Nowy system ma **usprawniać** proces zatwierdzania dokumentów.",
+    "zdanieEN": "The new platform will **streamline** the document approval process.",
+    "examples": [
+      "Automation helps streamline repetitive tasks."
+    ],
+    "synonyms": ["optimize", "simplify"],
+    "antonyms": ["complicate"],
+    "tags": ["C1", "process", "business"]
+  },
+  {
+    "term": "stakeholder",
+    "definition": "A person or group with an interest in a project or organization",
+    "definitionPl": "interesariusz",
+    "partOfSpeech": "noun",
+    "phonetic": "/ˈsteɪkˌhəʊl.də/",
+    "difficulty": 3,
+    "zdaniePL": "Każdy **interesariusz** musi zatwierdzić ostateczną wersję wymagań.",
+    "zdanieEN": "Every **stakeholder** must approve the final version of the requirements.",
+    "examples": [
+      "Stakeholders requested additional reporting features."
+    ],
+    "synonyms": ["participant", "partner"],
+    "antonyms": ["outsider"],
+    "tags": ["B2", "project", "business"]
+  },
+  {
+    "term": "bottleneck",
+    "definition": "A point in a process where progress is slowed or stopped",
+    "definitionPl": "wąskie gardło",
+    "partOfSpeech": "noun",
+    "phonetic": "/ˈbɒt.əl.nek/",
+    "difficulty": 3,
+    "zdaniePL": "Ręczna akceptacja tworzy **wąskie gardło** w całym procesie.",
+    "zdanieEN": "Manual approval creates a **bottleneck** in the workflow.",
+    "examples": [
+      "The reporting step became a bottleneck."
+    ],
+    "synonyms": ["obstacle", "blockage"],
+    "antonyms": ["acceleration"],
+    "tags": ["B2", "process", "analysis"]
+  },
+  {
+    "term": "alignment",
+    "definition": "Agreement or cooperation between people or groups",
+    "definitionPl": "zgodność",
+    "partOfSpeech": "noun",
+    "phonetic": "/əˈlaɪn.mənt/",
+    "difficulty": 3,
+    "zdaniePL": "Potrzebujemy większej **zgodności** między zespołem biznesowym a technicznym.",
+    "zdanieEN": "We need stronger **alignment** between the business and technical teams.",
+    "examples": [
+      "The strategy is in alignment with company goals."
+    ],
+    "synonyms": ["agreement", "coordination"],
+    "antonyms": ["conflict", "disagreement"],
+    "tags": ["B2", "management", "business"]
+  },
+  {
+    "term": "oversee",
+    "definition": "To supervise or manage a task or process",
+    "definitionPl": "nadzorować",
+    "partOfSpeech": "verb",
+    "phonetic": "/ˌəʊ.vəˈsiː/",
+    "difficulty": 3,
+    "zdaniePL": "Kierownik projektu będzie **nadzorować** wdrożenie systemu.",
+    "zdanieEN": "The project manager will **oversee** the system implementation.",
+    "examples": [
+      "She oversees several digital transformation projects."
+    ],
+    "synonyms": ["supervise", "manage"],
+    "antonyms": ["ignore", "neglect"],
+    "tags": ["B2", "management"]
+  },
+  {
+    "term": "constraint",
+    "definition": "A limitation that restricts what can be done",
+    "definitionPl": "ograniczenie",
+    "partOfSpeech": "noun",
+    "phonetic": "/kənˈstreɪnt/",
+    "difficulty": 3,
+    "zdaniePL": "Musimy uwzględnić techniczne **ograniczenia** systemu.",
+    "zdanieEN": "We must consider the system **constraints** during implementation.",
+    "examples": [
+      "Budget constraints limit our options."
+    ],
+    "synonyms": ["limitation", "restriction"],
+    "antonyms": ["freedom", "flexibility"],
+    "tags": ["B2", "analysis", "project"]
+  },
+  {
+    "term": "prioritize",
+    "definition": "To decide which tasks are more important",
+    "definitionPl": "priorytetyzować",
+    "partOfSpeech": "verb",
+    "phonetic": "/praɪˈɒr.ɪ.taɪz/",
+    "difficulty": 3,
+    "zdaniePL": "Musimy **priorytetyzować** najważniejsze wymagania klienta.",
+    "zdanieEN": "We should **prioritize** the most critical client requirements.",
+    "examples": [
+      "The team prioritized security improvements."
+    ],
+    "synonyms": ["rank", "order"],
+    "antonyms": ["ignore"],
+    "tags": ["B2", "project", "decision"]
   }
 ]

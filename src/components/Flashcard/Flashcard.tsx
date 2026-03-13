@@ -103,10 +103,12 @@ export function Flashcard({
           {/* Back */}
           <div className="fc-face fc-face--back" aria-hidden={!isFlipped}>
             <span className="fc-lang-badge">🇬🇧</span>
-            {backLabel && <span className="fc-back-label">{backLabel}</span>}
             {backNode
-              ? <span className="fc-word fc-word--back fc-word--sentence">{backNode}</span>
-              : <span className="fc-word fc-word--back">{back}</span>
+              ? <div className="fc-back-node">{backNode}</div>
+              : <>
+                  {backLabel && <span className="fc-back-label">{backLabel}</span>}
+                  <span className="fc-word fc-word--back">{back}</span>
+                </>
             }
           </div>
         </div>
