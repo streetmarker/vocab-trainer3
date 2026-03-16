@@ -6,9 +6,12 @@ import { VocabManager } from "./components/VocabManager/VocabManager";
 import type { AppRoute } from "./types";
 import { api } from "./hooks/useTauri";
 import "./styles/global.css";
+import { enable } from "@tauri-apps/plugin-autostart";
+
 
 export default function App() {
   const [route, setRoute] = useState<AppRoute>("dashboard");
+  enable();
 
   // Listen for navigation events from tray menu
   useEffect(() => {

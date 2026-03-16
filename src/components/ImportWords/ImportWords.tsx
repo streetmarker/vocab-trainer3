@@ -29,6 +29,8 @@ const SCHEMA_EXAMPLE = `[
     "partOfSpeech": "adjective",
     "phonetic": "/juːˈbɪk.wɪ.təs/",
     "difficulty": 3,
+    "zdaniePL": "Smartfony są ubiquitous w dzisiejszym świecie.",
+    "zdanieEN": "Smartphones have become ubiquitous in modern life.",
     "examples": ["Technology is ubiquitous in modern life."],
     "synonyms": ["omnipresent", "pervasive"],
     "antonyms": ["rare", "scarce"],
@@ -39,8 +41,9 @@ const SCHEMA_EXAMPLE = `[
 const REQUIRED_FIELDS = [`"term"`, `"definition"`];
 const OPTIONAL_FIELDS = [
   `"definitionPl"`, `"partOfSpeech"`, `"phonetic"`,
-  `"difficulty" (1–5)`, `"examples" []`, `"synonyms" []`,
-  `"antonyms" []`, `"tags" []`,
+  `"difficulty" (1–5)`,
+  `"zdaniePL"`, `"zdanieEN"`,
+  `"examples" []`, `"synonyms" []`, `"antonyms" []`, `"tags" []`,
 ];
 
 export const ImportWords: React.FC<Props> = ({ onImportDone }) => {

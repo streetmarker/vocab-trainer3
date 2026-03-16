@@ -51,6 +51,17 @@ pub enum MasteryLevel {
     New, Learning, Reviewing, Mastered,
 }
 
+impl std::fmt::Display for MasteryLevel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::New       => write!(f, "new"),
+            Self::Learning  => write!(f, "learning"),
+            Self::Reviewing => write!(f, "reviewing"),
+            Self::Mastered  => write!(f, "mastered"),
+        }
+    }
+}
+
 impl MasteryLevel {
     pub fn from_str(s: &str) -> Self {
         match s {

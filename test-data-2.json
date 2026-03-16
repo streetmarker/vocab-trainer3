@@ -1,0 +1,162 @@
+[
+  {
+    "term": "routine",
+    "definition": "A regular way of doing things, often done daily",
+    "definitionPl": "rutyna",
+    "partOfSpeech": "noun",
+    "phonetic": "/ruːˈtiːn/",
+    "difficulty": 2,
+    "zdaniePL": "Dzieci czują się bezpieczniej, gdy mają stałą **rutynę** w przedszkolu.",
+    "zdanieEN": "Children feel safer when they have a daily **routine**.",
+    "examples": [
+      "Our morning routine includes songs and circle time."
+    ],
+    "synonyms": ["habit", "schedule"],
+    "antonyms": ["change", "disorder"],
+    "tags": ["A2", "education", "daily"]
+  },
+  {
+    "term": "encourage",
+    "definition": "To give someone support or confidence to do something",
+    "definitionPl": "zachęcać",
+    "partOfSpeech": "verb",
+    "phonetic": "/ɪnˈkʌr.ɪdʒ/",
+    "difficulty": 2,
+    "zdaniePL": "Staram się **zachęcać** dzieci do samodzielnej zabawy.",
+    "zdanieEN": "Teachers should **encourage** children to try new activities.",
+    "examples": [
+      "We encourage children to share toys."
+    ],
+    "synonyms": ["support", "motivate"],
+    "antonyms": ["discourage"],
+    "tags": ["A2", "education", "children"]
+  },
+  {
+    "term": "behaviour",
+    "definition": "The way someone acts, especially how a child acts",
+    "definitionPl": "zachowanie",
+    "partOfSpeech": "noun",
+    "phonetic": "/bɪˈheɪ.vjə/",
+    "difficulty": 2,
+    "zdaniePL": "Rozmawiamy z rodzicami o **zachowaniu** dziecka w grupie.",
+    "zdanieEN": "We discuss the child's **behaviour** with the parents.",
+    "examples": [
+      "Good behaviour is rewarded with praise."
+    ],
+    "synonyms": ["conduct", "actions"],
+    "antonyms": ["misconduct"],
+    "tags": ["A2", "education", "children"]
+  },
+  {
+    "term": "supervise",
+    "definition": "To watch over people to make sure they are safe",
+    "definitionPl": "nadzorować",
+    "partOfSpeech": "verb",
+    "phonetic": "/ˈsuː.pə.vaɪz/",
+    "difficulty": 3,
+    "zdaniePL": "Nauczyciel musi **nadzorować** dzieci podczas zabawy na placu zabaw.",
+    "zdanieEN": "Teachers must **supervise** children on the playground.",
+    "examples": [
+      "Staff supervise children during outdoor activities."
+    ],
+    "synonyms": ["watch", "monitor"],
+    "antonyms": ["ignore"],
+    "tags": ["B1", "education", "safety"]
+  },
+  {
+    "term": "share",
+    "definition": "To use something together or give a part of it to others",
+    "definitionPl": "dzielić się",
+    "partOfSpeech": "verb",
+    "phonetic": "/ʃeə/",
+    "difficulty": 1,
+    "zdaniePL": "Uczymy dzieci **dzielić się** zabawkami z innymi.",
+    "zdanieEN": "Children learn to **share** their toys with friends.",
+    "examples": [
+      "It's important to share with classmates."
+    ],
+    "synonyms": ["give", "divide"],
+    "antonyms": ["keep"],
+    "tags": ["A2", "children", "social"]
+  },
+  {
+    "term": "comfort",
+    "definition": "To make someone feel less sad or worried",
+    "definitionPl": "pocieszać",
+    "partOfSpeech": "verb",
+    "phonetic": "/ˈkʌm.fət/",
+    "difficulty": 2,
+    "zdaniePL": "Nauczycielka próbuje **pocieszać** dziecko, gdy tęskni za rodzicami.",
+    "zdanieEN": "The teacher tries to **comfort** the child who misses their parents.",
+    "examples": [
+      "She comforted the child after he fell down."
+    ],
+    "synonyms": ["soothe", "reassure"],
+    "antonyms": ["upset"],
+    "tags": ["A2", "children", "emotions"]
+  },
+  {
+    "term": "participate",
+    "definition": "To take part in an activity",
+    "definitionPl": "uczestniczyć",
+    "partOfSpeech": "verb",
+    "phonetic": "/pɑːˈtɪs.ɪ.peɪt/",
+    "difficulty": 3,
+    "zdaniePL": "Staramy się, aby każde dziecko mogło **uczestniczyć** w zabawie.",
+    "zdanieEN": "Every child should **participate** in the activity.",
+    "examples": [
+      "Children participate in group games."
+    ],
+    "synonyms": ["join", "take part"],
+    "antonyms": ["avoid"],
+    "tags": ["B1", "education", "activities"]
+  },
+  {
+    "term": "creative",
+    "definition": "Having the ability to make new and imaginative things",
+    "definitionPl": "kreatywny",
+    "partOfSpeech": "adjective",
+    "phonetic": "/kriˈeɪ.tɪv/",
+    "difficulty": 2,
+    "zdaniePL": "Dzieci są bardzo **kreatywne** podczas zajęć plastycznych.",
+    "zdanieEN": "Children can be very **creative** during art activities.",
+    "examples": [
+      "Creative play helps develop imagination."
+    ],
+    "synonyms": ["imaginative", "inventive"],
+    "antonyms": ["unimaginative"],
+    "tags": ["A2", "education", "development"]
+  },
+  {
+    "term": "patient",
+    "definition": "Able to stay calm and not get angry when things take time",
+    "definitionPl": "cierpliwy",
+    "partOfSpeech": "adjective",
+    "phonetic": "/ˈpeɪ.ʃənt/",
+    "difficulty": 2,
+    "zdaniePL": "Nauczyciel musi być bardzo **cierpliwy** podczas pracy z małymi dziećmi.",
+    "zdanieEN": "A teacher must be **patient** when working with young children.",
+    "examples": [
+      "Good teachers are patient with their students."
+    ],
+    "synonyms": ["calm", "tolerant"],
+    "antonyms": ["impatient"],
+    "tags": ["A2", "education", "personality"]
+  },
+  {
+    "term": "responsibility",
+    "definition": "Something that you must take care of or be responsible for",
+    "definitionPl": "odpowiedzialność",
+    "partOfSpeech": "noun",
+    "phonetic": "/rɪˌspɒn.səˈbɪl.ə.ti/",
+    "difficulty": 3,
+    "zdaniePL": "Opieka nad dziećmi to duża **odpowiedzialność**.",
+    "zdanieEN": "Taking care of children is a big **responsibility**.",
+    "examples": [
+      "Teachers have the responsibility to keep children safe."
+    ],
+    "synonyms": ["duty", "obligation"],
+    "antonyms": ["irresponsibility"],
+    "tags": ["B1", "education", "work"]
+  }
+]

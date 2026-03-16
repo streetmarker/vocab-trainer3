@@ -31,12 +31,52 @@ use commands::AppState;
 ///   1. The window has its own isolated JS context (no label-routing needed)
 ///   2. getCurrentWebviewWindow() returns "task-notification" unambiguously
 ///   3. JS is never shared with or affected by the main window's React tree
+/// Parse "HH:MM" string into minutes from midnight.
+/// Falls back to `default_mins` on any parse error.
+/// Examples: "08:30" → 510,  "22:00" → 1320,  "08" (no colon) → 480
+pub fn parse_hhmm_to_mins(s: &str, default_mins: u32) -> u32 {
+    let mut parts = s.splitn(2, ':');
+    let h: u32 = parts.next().and_then(|x| x.parse().ok()).unwrap_or(default_mins / 60);
+    let m: u32 = parts.next().and_then(|x| x.parse().ok()).unwrap_or(0);
+    h * 60 + m
+}
+
 pub fn show_task_notification(app: &tauri::AppHandle, word: &db::Word) {
     const LABEL: &str = "task-notification";
-    const WIN_W: f64  = 360.0;
-    // Height: 3px progress + 35px header + 120px flashcard + 52px answers + 52px actions = 262px
-    // After flip: actions collapse, answers expand — total stays ~262px
-    const WIN_H: f64  = 201.0;
+
+    log::info!("[notif] show_task_notification called for '{}'", word.term);
+
+    // ── Compute logical window size from primary monitor ──────────────────────
+    // Target: 22% of logical screen width, 35% of logical screen height
+    // "Logical px" = CSS px = physical px / scale_factor.
+    // Window scales proportionally with screen DPI and resolution.
+    //
+    // Clamping ensures:
+    //   - Min width: 300px (readability threshold)
+    //   - Max width: 480px (don't take up too much screen)
+    //   - Min height: 200px (minimum content space)
+    //   - Max height: 600px (don't dominate screen)
+
+    const WIDTH_PCT: f64 = 0.22;    // 22% of logical screen width
+    const HEIGHT_PCT: f64 = 0.35;   // 35% of logical screen height
+    const WIDTH_MIN: f64 = 300.0;   // minimum width (logical px)
+    const WIDTH_MAX: f64 = 480.0;   // maximum width (logical px) — increased for better content fit
+    const HEIGHT_MIN: f64 = 200.0;  // minimum height (logical px)
+    const HEIGHT_MAX: f64 = 600.0;  // maximum height (logical px)
+
+    let (win_w_log, win_h_log) = if let Ok(Some(monitor)) = app.primary_monitor() {
+        let scale    = monitor.scale_factor();
+        let phys_w   = monitor.size().width as f64;
+        let phys_h   = monitor.size().height as f64;
+        let logical_w = phys_w / scale;
+        let logical_h = phys_h / scale;
+        
+        let w = (logical_w * WIDTH_PCT).clamp(WIDTH_MIN, WIDTH_MAX);
+        let h = (logical_h * HEIGHT_PCT).clamp(HEIGHT_MIN, HEIGHT_MAX);
+        (w, h)
+    } else {
+        (360.0, 280.0) // fallback if monitor query fails
+    };
 
     // termPl = Polish definition shown bold on flashcard front
     let term_pl        = word.definition_pl.clone()
@@ -50,7 +90,8 @@ pub fn show_task_notification(app: &tauri::AppHandle, word: &db::Word) {
 
     // ── Get existing window or create it now ─────────────────────────────────
     let notif = if let Some(w) = app.get_webview_window(LABEL) {
-        w // warm: already loaded, just parked off-screen
+        log::info!("[notif] window warm (reusing existing)");
+        w
     } else {
         // First trigger: create the window. Points to notification.html which
         // loads notification.tsx — a dedicated entry, not shared with main.
@@ -60,7 +101,7 @@ pub fn show_task_notification(app: &tauri::AppHandle, word: &db::Word) {
             tauri::WebviewUrl::App("notification.html".into()),
         )
         .title("")
-        .inner_size(WIN_W, WIN_H)
+        .inner_size(win_w_log, win_h_log)
         .decorations(false)
         .transparent(true)
         .always_on_top(true)
@@ -69,7 +110,10 @@ pub fn show_task_notification(app: &tauri::AppHandle, word: &db::Word) {
         .visible(false) // hidden until repositioned below
         .build()
         {
-            Ok(w)  => w,
+            Ok(w)  => {
+                log::info!("[notif] window cold (created fresh)");
+                w
+            }
             Err(e) => {
                 log::error!("show_task_notification: build failed: {}", e);
                 return;
@@ -77,31 +121,68 @@ pub fn show_task_notification(app: &tauri::AppHandle, word: &db::Word) {
         }
     };
 
-    // ── Position bottom-right, above taskbar ─────────────────────────────────
+    // ── Size and position bottom-right, above taskbar (always, warm or cold) ──
     if let Ok(Some(monitor)) = notif.primary_monitor() {
-        let screen  = monitor.size();
+        let screen  = monitor.size();           // PhysicalSize
         let scale   = monitor.scale_factor();
-        let win_w   = (WIN_W * scale) as u32;
-        let win_h   = (WIN_H * scale) as u32;
-        let taskbar = (48.0  * scale) as u32;
-        let margin  = (16.0  * scale) as u32;
+        let win_w   = (win_w_log * scale).round() as u32;
+        let win_h   = (win_h_log * scale).round() as u32;
+        let taskbar = (48.0 * scale).round() as u32;
+        let margin  = (16.0 * scale).round() as u32;
         let x = screen.width.saturating_sub(win_w + margin) as i32;
         let y = screen.height.saturating_sub(win_h + taskbar + margin) as i32;
         let _ = notif.set_size(PhysicalSize::new(win_w, win_h));
         let _ = notif.set_position(PhysicalPosition::new(x, y));
     }
     let _ = notif.set_always_on_top(true);
+
+    // ── Prevent focus steal: set WS_EX_NOACTIVATE on the OS window ────────────
+    // Tauri's `focus: false` is a known no-op on Windows (tauri#7519).
+    // The only reliable fix is patching WS_EX_NOACTIVATE directly via Win32.
+    //
+    // WHY raw extern instead of the `windows` crate:
+    //   Tauri v2 internally pulls windows-core 0.61.x; our Cargo.toml pins
+    //   windows = "0.58".  The HWND returned by notif.hwnd() comes from Tauri's
+    //   copy of windows-core, so it doesn't satisfy the Param<HWND> bound of
+    //   0.58's GetWindowLongW — causing a type-mismatch compile error.
+    //   Declaring the functions ourselves via #[link(name="user32")] bypasses
+    //   the crate entirely: we just pass hwnd.0 (isize) directly.
+    #[cfg(target_os = "windows")]
+    {
+        #[link(name = "user32")]
+        extern "system" {
+            fn GetWindowLongW(hwnd: *mut std::ffi::c_void, n_index: i32) -> i32;
+            fn SetWindowLongW(hwnd: *mut std::ffi::c_void, n_index: i32, dw_new_long: i32) -> i32;
+        }
+        const GWL_EXSTYLE:      i32 = -20;
+        const WS_EX_NOACTIVATE: i32 = 0x0800_0000_u32 as i32;
+
+        if let Ok(hwnd) = notif.hwnd() {
+            // HWND.0 is *mut c_void in Tauri's windows-core 0.61
+            unsafe {
+                let raw = hwnd.0;
+                let ex  = GetWindowLongW(raw, GWL_EXSTYLE);
+                SetWindowLongW(raw, GWL_EXSTYLE, ex | WS_EX_NOACTIVATE);
+            }
+        }
+    }
+
+    log::info!("[notif] calling show() on window");
     let _ = notif.show(); // un-throttles WebView2 if it was parked
 
     // ── Emit after 500ms ──────────────────────────────────────────────────────
     // On first creation: React needs ~400ms to mount and register the listener.
     // On subsequent shows (after hide()): WebView2 needs time to un-throttle
     // after being hidden. 500ms is safe for both cases.
+    // NOTE: set_focus() intentionally removed — the notification must NEVER
+    //       interrupt the user's active window.
+    let word_term_log = term_en.clone();
     let app_clone = app.clone();
     std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_millis(500));
         use tauri::Emitter;
-        let _ = app_clone.emit_to(
+        log::info!("[notif] emitting payload for '{word_term_log}' to window");
+        let result = app_clone.emit_to(
             LABEL,
             "task-notification",
             serde_json::json!({
@@ -114,9 +195,12 @@ pub fn show_task_notification(app: &tauri::AppHandle, word: &db::Word) {
                 "wordId":       word_id,
             }),
         );
-        if let Some(w) = app_clone.get_webview_window(LABEL) {
-            let _ = w.set_focus();
+        if let Err(e) = result {
+            log::error!("[notif] emit_to failed: {e}");
+        } else {
+            log::info!("[notif] payload emitted OK");
         }
+        // set_focus() deliberately omitted — WS_EX_NOACTIVATE handles focus isolation
     });
 }
 
@@ -166,7 +250,22 @@ pub fn show_popup(app: &tauri::AppHandle, word_id: i64) {
 
 
 pub fn run() {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    // Log levels:
+    //   RUST_LOG=debug                    → all debug output (very verbose)
+    //   RUST_LOG=vocab_trainer_lib=debug  → only this crate at debug
+    // Default: scheduler at info (condition table printed on every change),
+    //          everything else at info.
+    // Crate lib name is vocab_trainer_lib (see Cargo.toml [lib] name = "vocab_trainer_lib")
+    env_logger::Builder::from_env(
+        env_logger::Env::default()
+            .default_filter_or("info"),
+    )
+    .format(|buf, record| {
+        use std::io::Write;
+        let ts = chrono::Local::now().format("%H:%M:%S%.3f");
+        writeln!(buf, "[{ts}] {:<5} {}", record.level(), record.args())
+    })
+    .init();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_autostart::init(
@@ -206,14 +305,8 @@ pub fn run() {
                 min_popup_gap_secs:  (saved.min_gap_minutes as u64) * 60,
                 poll_interval_secs:  10,
                 max_daily_exercises: saved.exercises_per_day as i32,
-                work_hours_start:    saved.work_hours_start
-                    .split(':').next()
-                    .and_then(|h| h.parse().ok())
-                    .unwrap_or(8),
-                work_hours_end:      saved.work_hours_end
-                    .split(':').next()
-                    .and_then(|h| h.parse().ok())
-                    .unwrap_or(22),
+                work_hours_start:    parse_hhmm_to_mins(&saved.work_hours_start, 8 * 60),
+                work_hours_end:      parse_hhmm_to_mins(&saved.work_hours_end,  22 * 60),
             };
             log::info!(
                 "Scheduler: gap={}min idle={}s daily={} hours={}–{}",
@@ -257,12 +350,17 @@ pub fn run() {
             // ⚠ MUST use show_task_notification — NOT show_popup.
             // show_popup repositions the 480px popup window onto the screen, which
             // appears as a permanent transparent background behind the toast.
+            // Bug fix: call record_popup_showing() BEFORE show_task_notification so
+            // the scheduler loop sees last_popup_at != None and won't fire a second
+            // notification in the very next 10-second poll (startup race).
             {
-                let db_clone = Arc::clone(&db);
-                let handle   = app.handle().clone();
+                let db_clone    = Arc::clone(&db);
+                let handle      = app.handle().clone();
+                let sched_clone = Arc::clone(&scheduler);
                 tauri::async_runtime::spawn(async move {
                     tokio::time::sleep(std::time::Duration::from_secs(5)).await;
                     if let Ok(Some((word, _))) = db_clone.get_session_word() {
+                        sched_clone.record_popup_showing(); // blocks scheduler loop
                         show_task_notification(&handle, &word);
                     }
                 });

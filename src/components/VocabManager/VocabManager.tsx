@@ -8,7 +8,7 @@
 // No new screens — everything is added inline.
 
 import React, { useEffect, useState } from "react";
-import type { Word, PartOfSpeech } from "../../types";
+import type { PartOfSpeech } from "../../types";
 import type { WordWithProgress, SrsOverview } from "../../hooks/useTauri";
 import { DIFFICULTY_LABELS, DIFFICULTY_COLORS, PART_OF_SPEECH_LABELS } from "../../types";
 import { api } from "../../hooks/useTauri";

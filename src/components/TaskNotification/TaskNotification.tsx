@@ -73,17 +73,25 @@ export function TaskNotification({ termPl, termEn, partOfSpeech, phonetic, sente
   const pausedRef  = useRef(false);
   const closedRef  = useRef(false);
 
-  const hardClose = useCallback(() => {
+  const hardClose = useCallback((skipGapReset = false) => {
     if (closedRef.current) return;
     closedRef.current = true;
     cancelAnimationFrame(rafRef.current);
     setSlidePhase("out");
-    setTimeout(async () => { onDismiss(); await appWindow.hide(); }, SLIDE_OUT_MS);
-  }, [onDismiss]);
+    setTimeout(async () => {
+      // Reset the scheduler gap timer unless the caller already did it
+      // (handleLater calls task_notification_later explicitly before hardClose).
+      if (!skipGapReset) {
+        try { await api.taskNotificationLater(word.wordId); } catch { /* ignore */ }
+      }
+      onDismiss();
+      await appWindow.hide();
+    }, SLIDE_OUT_MS);
+  }, [onDismiss, word.wordId]);
 
   const handleLater = useCallback(async () => {
     try { await api.taskNotificationLater(word.wordId); } catch { /* ignore */ }
-    hardClose();
+    hardClose(true); // skipGapReset=true — already called taskNotificationLater above
   }, [word.wordId, hardClose]);
 
   const handleCardFlip = useCallback(() => {

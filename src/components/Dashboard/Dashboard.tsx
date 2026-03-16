@@ -1,7 +1,7 @@
 // src/components/Dashboard/Dashboard.tsx
 import React, { useEffect, useState } from "react";
 import type { OverallStats, ActivityDay, Word } from "../../types";
-import { DIFFICULTY_LABELS, DIFFICULTY_COLORS, MASTERY_LABELS, PART_OF_SPEECH_LABELS } from "../../types";
+import { DIFFICULTY_LABELS, DIFFICULTY_COLORS, PART_OF_SPEECH_LABELS } from "../../types";
 import { api } from "../../hooks/useTauri";
 import "./Dashboard.css";
 

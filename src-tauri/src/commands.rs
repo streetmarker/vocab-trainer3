@@ -455,14 +455,8 @@ pub async fn save_settings(
         min_popup_gap_secs:  (settings.min_gap_minutes as u64) * 60,
         poll_interval_secs:  10,
         max_daily_exercises: settings.exercises_per_day as i32,
-        work_hours_start:    settings.work_hours_start
-            .split(':').next()
-            .and_then(|h| h.parse().ok())
-            .unwrap_or(8),
-        work_hours_end:      settings.work_hours_end
-            .split(':').next()
-            .and_then(|h| h.parse().ok())
-            .unwrap_or(22),
+        work_hours_start:    crate::parse_hhmm_to_mins(&settings.work_hours_start, 8 * 60),
+        work_hours_end:      crate::parse_hhmm_to_mins(&settings.work_hours_end,  22 * 60),
     };
     state.scheduler.update_config(new_config);
     Ok(())
@@ -700,6 +694,11 @@ pub async fn srs_answer(
         }
         None => (None, None, None, None, None, None, None),
     };
+
+    // Bug fix: record this answer toward the daily limit.
+    // Previously srs_answer never called record_popup_dismissed(), so
+    // exercises_today stayed at 0 all day and the daily cap had no effect.
+    state.scheduler.record_popup_dismissed(true);
 
     Ok(SrsResult {
         word_id,

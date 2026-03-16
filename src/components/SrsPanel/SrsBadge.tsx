@@ -2,7 +2,6 @@
 // Compact inline badge shown on each VocabRow.
 // Shows mastery level + interval + streak (if > 1).
 
-import React from "react";
 import type { WordWithProgress } from "../../hooks/useTauri";
 import { MASTERY_CONFIG, REVIEW_STATUS_CONFIG, formatInterval, formatAgo } from "./srs-config";
 
