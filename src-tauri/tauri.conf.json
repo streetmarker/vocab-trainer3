@@ -22,22 +22,6 @@
         "visible": false,
         "center": true,
         "url": "index.html"
-      },
-      {
-        "label": "popup",
-        "title": "",
-        "width": 360,
-        "height": 480,
-        "decorations": false,
-        "transparent": true,
-        "alwaysOnTop": true,
-        "skipTaskbar": true,
-        "visible": false,
-        "resizable": false,
-        "shadow": false,
-        "x": -2000,
-        "y": -2000,
-        "url": "popup.html"
       }
     ],
     "trayIcon": {

@@ -204,48 +204,37 @@ pub fn show_task_notification(app: &tauri::AppHandle, word: &db::Word) {
     });
 }
 
-
-/// The window is always "visible" but parked at -2000,-2000 when idle — this prevents
-/// the browser engine from throttling its JavaScript when hidden.
 pub fn show_popup(app: &tauri::AppHandle, word_id: i64) {
+    // 1. Zapisujemy ID słowa w stanie aplikacji (frontend pobierze je po montowaniu)
     if let Some(state) = app.try_state::<commands::AppState>() {
         if let Ok(mut pending) = state.pending_word_id.lock() {
             *pending = Some(word_id);
         }
     }
 
-    if let Some(popup) = app.get_webview_window("popup") {
-        if let Ok(Some(monitor)) = popup.primary_monitor() {
-            let screen  = monitor.size();
-            let scale   = monitor.scale_factor();
-            let win_w   = (360.0 * scale) as u32;
-            let win_h   = (480.0 * scale) as u32;
-            let taskbar = (48.0 * scale) as u32;
-            let margin  = (12.0 * scale) as u32;
-            let x = (screen.width.saturating_sub(win_w + margin)) as i32;
-            let y = (screen.height.saturating_sub(win_h + taskbar)) as i32;
-            let _ = popup.set_size(PhysicalSize::new(win_w, win_h));
-            let _ = popup.set_position(PhysicalPosition::new(x, y));
-        }
-        let _ = popup.set_always_on_top(true);
+    // 2. Dynamiczne budowanie okna
+    let _ = tauri::WebviewWindowBuilder::new(
+        app,
+        "popup",
+        tauri::WebviewUrl::App("popup.html".into()),
+    )
+    .title("Ćwiczenie")
+    .inner_size(360.0, 480.0)
+    .decorations(false)
+    .transparent(true)
+    .always_on_top(true)
+    .skip_taskbar(true)
+    .resizable(false)
+    .visible(true) // Okno pojawia się od razu
+    .build();
 
-        // Emit after 300ms — popup JS must register its listener first.
-        // emit_to("popup", ...) targets WebviewWindow{label:"popup"} which matches
-        // getCurrentWebviewWindow().listen() registered in popup.tsx.
-        let app_clone = app.clone();
-        std::thread::spawn(move || {
-            std::thread::sleep(std::time::Duration::from_millis(300));
-            use tauri::Emitter;
-            let _ = app_clone.emit_to(
-                "popup",
-                "load_exercise",
-                serde_json::json!({ "wordId": word_id }),
-            );
-            if let Some(w) = app_clone.get_webview_window("popup") {
-                let _ = w.set_focus();
-            }
-        });
-    }
+    // 3. Emitujemy zdarzenie po krótkim czasie (cold-start delay)
+    let app_clone = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(600)); // Zwiększony czas na start procesu
+        use tauri::Emitter;
+        let _ = app_clone.emit_to("popup", "load_exercise", serde_json::json!({ "wordId": word_id }));
+    });
 }
 
 

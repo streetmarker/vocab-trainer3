@@ -477,16 +477,10 @@ pub async fn get_popup_exercise(state: State<'_, AppState>) -> Result<Option<Exe
     }
 }
 
-/// Called by popup when dismissed/completed — clears pending word and parks window off-screen
 #[tauri::command]
-pub async fn hide_popup(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<(), String> {
-    if let Ok(mut pending) = state.pending_word_id.lock() {
-        *pending = None;
-    }
-    if let Some(win) = app.get_webview_window("popup") {
-        let _ = win.set_position(tauri::PhysicalPosition::new(-2000_i32, -2000_i32));
-    }
-    Ok(())
+pub async fn hide_popup(window: tauri::Window) -> Result<(), String> {
+    log::info!("[cmd] Closing popup window");
+    window.close().map_err(|e| e.to_string())
 }
 
 /// Called from Dashboard "Ćwicz teraz" button — picks next due word and shows popup
@@ -516,20 +510,12 @@ pub async fn get_current_word(state: State<'_, AppState>) -> Result<Option<Word>
 
 // ─── Task Notification Commands ───────────────────────────────────────────────
 
-/// User clicked "Ok" → open full exercise popup, start gap timer now.
-/// Counts toward daily limit since user is actively engaging.
 #[tauri::command]
-pub async fn task_notification_done(
-    word_id: i64,
-    app: tauri::AppHandle,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
-    log::info!("task_notification_done: word_id={}", word_id);
-    state.scheduler.record_popup_dismissed(true);
-    crate::show_popup(&app, word_id);
-    Ok(())
+pub async fn task_notification_done(window: tauri::Window) -> Result<(), String> {
+// pub async fn task_notification_done(app: tauri::AppHandle, window: tauri::Window) -> Result<(), String> {
+    // Pobieramy ID słowa przed zamknięciem, jeśli potrzebne do logiki...
+    window.close().map_err(|e| e.to_string())
 }
-
 /// User clicked "Później" or toast auto-closed → reset gap timer from NOW.
 /// Does NOT count toward daily limit (user didn't actually do an exercise).
 /// Next notification will appear after min_gap_minutes from this moment.
