@@ -1,0 +1,332 @@
+[
+  {
+    "term": "feasible",
+    "definition": "Possible to do or achieve successfully",
+    "definitionPl": "wykonalny",
+    "partOfSpeech": "adjective",
+    "difficulty": 3,
+    "zdaniePL": "Musimy sprawdzić, czy to rozwiązanie jest --wykonalne-- przed rozpoczęciem projektu.",
+    "zdanieEN": "We need to confirm whether the solution is --feasible-- before starting the implementation.",
+    "tags": ["B2", "business", "analysis"]
+  },
+  {
+    "term": "requirement",
+    "definition": "Something that is needed or must be done",
+    "definitionPl": "wymaganie",
+    "partOfSpeech": "noun",
+    "difficulty": 2,
+    "zdaniePL": "To jest kluczowe --wymaganie-- klienta.",
+    "zdanieEN": "This is a key --requirement-- from the client.",
+    "tags": ["B2", "business"]
+  },
+  {
+    "term": "scope",
+    "definition": "The limits of a project or task",
+    "definitionPl": "zakres",
+    "partOfSpeech": "noun",
+    "difficulty": 2,
+    "zdaniePL": "To wykracza poza --zakres-- projektu.",
+    "zdanieEN": "This is outside the project --scope--.",
+    "tags": ["B2", "project"]
+  },
+  {
+    "term": "clarify",
+    "definition": "To make something clear",
+    "definitionPl": "doprecyzować",
+    "partOfSpeech": "verb",
+    "difficulty": 2,
+    "zdaniePL": "Musimy --doprecyzować-- wymagania.",
+    "zdanieEN": "We need to --clarify-- the requirements.",
+    "tags": ["B2", "communication"]
+  },
+  {
+    "term": "assumption",
+    "definition": "Something accepted as true without proof",
+    "definitionPl": "założenie",
+    "partOfSpeech": "noun",
+    "difficulty": 3,
+    "zdaniePL": "To było tylko nasze --założenie--.",
+    "zdanieEN": "That was just our --assumption--.",
+    "tags": ["B2", "analysis"]
+  },
+  {
+    "term": "constraint",
+    "definition": "A limitation or restriction",
+    "definitionPl": "ograniczenie",
+    "partOfSpeech": "noun",
+    "difficulty": 3,
+    "zdaniePL": "Musimy uwzględnić techniczne --ograniczenia-- systemu.",
+    "zdanieEN": "We must consider the system --constraints-- during implementation.",
+    "tags": ["B2", "analysis", "project"]
+  },
+  {
+    "term": "dependency",
+    "definition": "A situation where one thing depends on another",
+    "definitionPl": "zależność",
+    "partOfSpeech": "noun",
+    "difficulty": 3,
+    "zdaniePL": "To zadanie ma --zależność-- od innego systemu.",
+    "zdanieEN": "This task has a --dependency-- on another system.",
+    "tags": ["B2", "analysis"]
+  },
+  {
+    "term": "impact",
+    "definition": "The effect of something",
+    "definitionPl": "wpływ",
+    "partOfSpeech": "noun",
+    "difficulty": 2,
+    "zdaniePL": "Ta zmiana ma duży --wpływ--.",
+    "zdanieEN": "This change has a big --impact--.",
+    "tags": ["B2", "analysis"]
+  },
+  {
+    "term": "stakeholder",
+    "definition": "A person or group with an interest in a project or organization",
+    "definitionPl": "interesariusz",
+    "partOfSpeech": "noun",
+    "difficulty": 3,
+    "zdaniePL": "Każdy --interesariusz-- musi zatwierdzić ostateczną wersję wymagań.",
+    "zdanieEN": "Every --stakeholder-- must approve the final version of the requirements.",
+    "tags": ["B2", "project", "business"]
+  },
+  {
+    "term": "prioritize",
+    "definition": "To decide which tasks are more important",
+    "definitionPl": "priorytetyzować",
+    "partOfSpeech": "verb",
+    "difficulty": 3,
+    "zdaniePL": "Musimy --priorytetyzować-- najważniejsze wymagania klienta.",
+    "zdanieEN": "We should --prioritize-- the most critical client requirements.",
+    "tags": ["B2", "project", "decision"]
+  },
+  {
+    "term": "mitigate",
+    "definition": "To reduce the severity or impact of something",
+    "definitionPl": "łagodzić",
+    "partOfSpeech": "verb",
+    "difficulty": 4,
+    "zdaniePL": "Musimy --łagodzić-- ryzyko związane z integracją systemów.",
+    "zdanieEN": "We need to --mitigate-- the risks associated with the system integration.",
+    "tags": ["C1", "risk", "project"]
+  },
+  {
+    "term": "implication",
+    "definition": "A possible effect or consequence of an action or decision",
+    "definitionPl": "implikacja",
+    "partOfSpeech": "noun",
+    "difficulty": 4,
+    "zdaniePL": "Ta zmiana może mieć poważne --implikacje-- dla całego procesu.",
+    "zdanieEN": "This change may have serious --implications-- for the overall workflow.",
+    "tags": ["C1", "analysis", "decision"]
+  },
+  {
+    "term": "alignment",
+    "definition": "Agreement or cooperation between people or groups",
+    "definitionPl": "zgodność",
+    "partOfSpeech": "noun",
+    "difficulty": 3,
+    "zdaniePL": "Potrzebujemy większej --zgodności-- między zespołem biznesowym a technicznym.",
+    "zdanieEN": "We need stronger --alignment-- between the business and technical teams.",
+    "tags": ["B2", "management", "business"]
+  },
+  {
+    "term": "workflow",
+    "definition": "A sequence of steps in a process",
+    "definitionPl": "workflow",
+    "partOfSpeech": "noun",
+    "difficulty": 3,
+    "zdaniePL": "Ten --workflow-- jest zbyt skomplikowany.",
+    "zdanieEN": "This --workflow-- is too complex.",
+    "tags": ["B2", "process"]
+  },
+  {
+    "term": "trigger",
+    "definition": "An event that starts a process",
+    "definitionPl": "wyzwalacz",
+    "partOfSpeech": "noun",
+    "difficulty": 3,
+    "zdaniePL": "Co jest --wyzwalaczem-- procesu?",
+    "zdanieEN": "What is the --trigger-- for the process?",
+    "tags": ["B2", "process"]
+  },
+  {
+    "term": "evaluate",
+    "definition": "To assess or judge something",
+    "definitionPl": "ocenić",
+    "partOfSpeech": "verb",
+    "difficulty": 2,
+    "zdaniePL": "Musimy --ocenić-- rozwiązanie.",
+    "zdanieEN": "We need to --evaluate-- the solution.",
+    "tags": ["B2", "analysis"]
+  },
+  {
+    "term": "implement",
+    "definition": "To put something into action",
+    "definitionPl": "wdrożyć",
+    "partOfSpeech": "verb",
+    "difficulty": 2,
+    "zdaniePL": "Musimy --wdrożyć-- zmiany.",
+    "zdanieEN": "We need to --implement-- the changes.",
+    "tags": ["B2", "project"]
+  },
+  {
+    "term": "proposal",
+    "definition": "A suggested plan",
+    "definitionPl": "propozycja",
+    "partOfSpeech": "noun",
+    "difficulty": 2,
+    "zdaniePL": "To jest nasza --propozycja--.",
+    "zdanieEN": "This is our --proposal--.",
+    "tags": ["B2", "business"]
+  },
+  {
+    "term": "approve",
+    "definition": "To accept something officially",
+    "definitionPl": "zatwierdzić",
+    "partOfSpeech": "verb",
+    "difficulty": 2,
+    "zdaniePL": "Klient musi to --zatwierdzić--.",
+    "zdanieEN": "The client must --approve-- it.",
+    "tags": ["B2", "business"]
+  },
+  {
+    "term": "reject",
+    "definition": "To refuse to accept something",
+    "definitionPl": "odrzucić",
+    "partOfSpeech": "verb",
+    "difficulty": 2,
+    "zdaniePL": "Możemy --odrzucić-- tę opcję.",
+    "zdanieEN": "We can --reject-- this option.",
+    "tags": ["B2", "decision"]
+  },
+  {
+    "term": "routine",
+    "definition": "A regular way of doing things, often done daily",
+    "definitionPl": "rutyna",
+    "partOfSpeech": "noun",
+    "difficulty": 2,
+    "zdaniePL": "Dzieci czują się bezpieczniej, gdy mają stałą --rutynę-- w przedszkolu.",
+    "zdanieEN": "Children feel safer when they have a daily --routine--.",
+    "tags": ["A2", "education", "daily"]
+  },
+  {
+    "term": "encourage",
+    "definition": "To give someone support or confidence to do something",
+    "definitionPl": "zachęcać",
+    "partOfSpeech": "verb",
+    "difficulty": 2,
+    "zdaniePL": "Staram się --zachęcać-- dzieci do samodzielnej zabawy.",
+    "zdanieEN": "Teachers should --encourage-- children to try new activities.",
+    "tags": ["A2", "education", "children"]
+  },
+  {
+    "term": "behaviour",
+    "definition": "The way someone acts, especially how a child acts",
+    "definitionPl": "zachowanie",
+    "partOfSpeech": "noun",
+    "difficulty": 2,
+    "zdaniePL": "Rozmawiamy z rodzicami o --zachowaniu-- dziecka w grupie.",
+    "zdanieEN": "We discuss the child's --behaviour-- with the parents.",
+    "tags": ["A2", "education", "children"]
+  },
+  {
+    "term": "supervise",
+    "definition": "To watch over people to make sure they are safe",
+    "definitionPl": "nadzorować",
+    "partOfSpeech": "verb",
+    "difficulty": 3,
+    "zdaniePL": "Nauczyciel musi --nadzorować-- dzieci podczas zabawy na placu zabaw.",
+    "zdanieEN": "Teachers must --supervise-- children on the playground.",
+    "tags": ["B1", "education", "safety"]
+  },
+  {
+    "term": "share",
+    "definition": "To use something together or give a part of it to others",
+    "definitionPl": "dzielić się",
+    "partOfSpeech": "verb",
+    "difficulty": 1,
+    "zdaniePL": "Uczymy dzieci --dzielić się-- zabawkami z innymi.",
+    "zdanieEN": "Children learn to --share-- their toys with friends.",
+    "tags": ["A2", "children", "social"]
+  },
+  {
+    "term": "comfort",
+    "definition": "To make someone feel less sad or worried",
+    "definitionPl": "pocieszać",
+    "partOfSpeech": "verb",
+    "difficulty": 2,
+    "zdaniePL": "Nauczycielka próbuje --pocieszać-- dziecko, gdy tęskni za rodzicami.",
+    "zdanieEN": "The teacher tries to --comfort-- the child who misses their parents.",
+    "tags": ["A2", "children", "emotions"]
+  },
+  {
+    "term": "participate",
+    "definition": "To take part in an activity",
+    "definitionPl": "uczestniczyć",
+    "partOfSpeech": "verb",
+    "difficulty": 3,
+    "zdaniePL": "Staramy się, aby każde dziecko mogło --uczestniczyć-- w zabawie.",
+    "zdanieEN": "Every child should --participate-- in the activity.",
+    "tags": ["B1", "education", "activities"]
+  },
+  {
+    "term": "creative",
+    "definition": "Having the ability to make new and imaginative things",
+    "definitionPl": "kreatywny",
+    "partOfSpeech": "adjective",
+    "difficulty": 2,
+    "zdaniePL": "Dzieci są bardzo --kreatywne-- podczas zajęć plastycznych.",
+    "zdanieEN": "Children can be very --creative-- during art activities.",
+    "tags": ["A2", "education", "development"]
+  },
+  {
+    "term": "patient",
+    "definition": "Able to stay calm and not get angry when things take time",
+    "definitionPl": "cierpliwy",
+    "partOfSpeech": "adjective",
+    "difficulty": 2,
+    "zdaniePL": "Nauczyciel musi być bardzo --cierpliwy-- podczas pracy z małymi dziećmi.",
+    "zdanieEN": "A teacher must be --patient-- when working with young children.",
+    "tags": ["A2", "education", "personality"]
+  },
+  {
+    "term": "responsibility",
+    "definition": "Something that you must take care of or be responsible for",
+    "definitionPl": "odpowiedzialność",
+    "partOfSpeech": "noun",
+    "difficulty": 3,
+    "zdaniePL": "Opieka nad dziećmi to duża --odpowiedzialność--.",
+    "zdanieEN": "Taking care of children is a big --responsibility--.",
+    "tags": ["B1", "education", "work"]
+  },
+  {
+    "term": "streamline",
+    "definition": "To improve a process by making it simpler and more efficient",
+    "definitionPl": "usprawniać",
+    "partOfSpeech": "verb",
+    "difficulty": 4,
+    "zdaniePL": "Nowy system ma --usprawniać-- proces zatwierdzania dokumentów.",
+    "zdanieEN": "The new platform will --streamline-- the document approval process.",
+    "tags": ["C1", "process", "business"]
+  },
+  {
+    "term": "bottleneck",
+    "definition": "A point in a process where progress is slowed or stopped",
+    "definitionPl": "wąskie gardło",
+    "partOfSpeech": "noun",
+    "difficulty": 3,
+    "zdaniePL": "Ręczna akceptacja tworzy --wąskie gardło-- w całym procesie.",
+    "zdanieEN": "Manual approval creates a --bottleneck-- in the workflow.",
+    "tags": ["B2", "process", "analysis"]
+  },
+  {
+    "term": "oversee",
+    "definition": "To supervise or manage a task or process",
+    "definitionPl": "nadzorować",
+    "partOfSpeech": "verb",
+    "difficulty": 3,
+    "zdaniePL": "Kierownik projektu będzie --nadzorować-- wdrożenie systemu.",
+    "zdanieEN": "The project manager will --oversee-- the system implementation.",
+    "tags": ["B2", "management"]
+  }
+]

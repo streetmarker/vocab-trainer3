@@ -854,3 +854,21 @@ pub async fn import_words_from_json(
     log::info!("import_words_from_json: added={} skipped={}", added, skipped);
     Ok(ImportResult { added, skipped, warnings })
 }
+#[tauri::command]
+pub async fn initialize_autostart(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri_plugin_autostart::ManagerExt;
+    
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let flag_path = data_dir.join(".autostart_initialized");
+
+    // Wykonaj tylko, jeśli aplikacja nie była jeszcze inicjalizowana
+    if !flag_path.exists() {
+        log::info!("Pierwsze uruchomienie: Konfiguracja autostartu...");
+        let _ = app.autolaunch().enable();
+        
+        // Tworzymy pusty plik jako znacznik ukończenia konfiguracji
+        std::fs::write(flag_path, "1").map_err(|e| e.to_string())?;
+    }
+    
+    Ok(())
+}

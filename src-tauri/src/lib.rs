@@ -402,6 +402,7 @@ pub fn run() {
             commands::task_notification_known,
             commands::flashcard_answer,
             commands::srs_answer,
+            commands::initialize_autostart,
             commands::import_words_from_json,
         ])
         .run(tauri::generate_context!())

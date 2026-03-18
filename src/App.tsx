@@ -6,13 +6,17 @@ import { VocabManager } from "./components/VocabManager/VocabManager";
 import type { AppRoute } from "./types";
 import { api } from "./hooks/useTauri";
 import "./styles/global.css";
-import { enable } from "@tauri-apps/plugin-autostart";
 
 
 export default function App() {
   const [route, setRoute] = useState<AppRoute>("dashboard");
-  enable();
-
+  
+  useEffect(() => {
+    // Wywołujemy inicjalizację autostartu raz przy starcie aplikacji
+    import('@tauri-apps/api/core').then(({ invoke }) => {
+      invoke('initialize_autostart').catch(console.error);
+    });
+  }, []);
   // Listen for navigation events from tray menu
   useEffect(() => {
     const unlisten = listen<AppRoute>("navigate", (e) => {
