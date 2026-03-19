@@ -8,6 +8,7 @@ import type {
 import { PART_OF_SPEECH_LABELS } from "../../types";
 import { api } from "../../hooks/useTauri";
 import "./ExercisePopup.css";
+import TtsPlayer from '../TtsPlayer';
 
 interface Props {
   exercise: Exercise;

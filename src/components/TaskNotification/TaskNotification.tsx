@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { Flashcard, type SrsGrade } from "../Flashcard/Flashcard";
 import { api } from "../../hooks/useTauri";
+import TtsPlayer from "../TtsPlayer";
 
 const appWindow    = getCurrentWebviewWindow();
 const AUTO_CLOSE   = 20_000;
@@ -51,6 +52,11 @@ function parseBold(sentence: string): React.ReactNode {
     </>
   );
 }
+// function to trim "--" and "**" from string
+function trimMarkers(input: string): string {
+  return input.replace(/(\*\*|--)/g, "");
+}
+
 
 type Props = {
   termPl: string; termEn: string; partOfSpeech?: string;
@@ -221,6 +227,10 @@ export function TaskNotification({ termPl, termEn, partOfSpeech, phonetic, sente
                 {word.partOfSpeech && <span className="fc-back-pos">{word.partOfSpeech}</span>}
               </div>
               <div className="fc-back-sentence">{parseBold(word.sentenceEn ?? "")}</div>
+              <TtsPlayer 
+                term={word.termEn} 
+                exampleEn={trimMarkers(word.sentenceEn as string) ?? ""} 
+              />
             </div>
           }
           hint="kliknij aby zobaczyć po angielsku"

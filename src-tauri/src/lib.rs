@@ -4,6 +4,7 @@
 pub mod db;
 pub mod learning;
 pub mod commands;
+pub mod tts;
 
 use std::sync::Arc;
 use anyhow::Result;
@@ -17,6 +18,7 @@ use db::Database;
 use learning::{LearningEngine, ProgressTracker, new_session_id};
 use learning::scheduler::{Scheduler, SchedulerConfig};
 use commands::AppState;
+use dotenvy::dotenv;
 
 /// Show the task-notification toast window.
 ///
@@ -239,6 +241,19 @@ pub fn show_popup(app: &tauri::AppHandle, word_id: i64) {
 
 
 pub fn run() {
+    // Załaduj plik .env (jeśli istnieje) do std::env
+    // Spróbuj załadować z src-tauri/.env (uruchamiane z katalogu głównego projektu)
+    dotenvy::from_filename("src-tauri/.env").ok();
+    // Backup: spróbuj z bieżącego katalogu (na wypadek uruchomienia bezpośrednio z src-tauri)
+    dotenv().ok();
+
+    // Debug: sprawdź czy zmienna została załadowana
+    if let Ok(creds) = std::env::var("GOOGLE_APPLICATION_CREDENTIALS") {
+        log::info!("GOOGLE_APPLICATION_CREDENTIALS loaded: {}", creds);
+    } else {
+        log::warn!("GOOGLE_APPLICATION_CREDENTIALS not found in environment");
+    }
+
     // Log levels:
     //   RUST_LOG=debug                    → all debug output (very verbose)
     //   RUST_LOG=vocab_trainer_lib=debug  → only this crate at debug
@@ -347,7 +362,7 @@ pub fn run() {
                 let handle      = app.handle().clone();
                 let sched_clone = Arc::clone(&scheduler);
                 tauri::async_runtime::spawn(async move {
-                    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                    tokio::time::sleep(std::time::Duration::from_secs(40)).await;
                     if let Ok(Some((word, _))) = db_clone.get_session_word() {
                         sched_clone.record_popup_showing(); // blocks scheduler loop
                         show_task_notification(&handle, &word);
@@ -393,11 +408,11 @@ pub fn run() {
             commands::srs_answer,
             commands::initialize_autostart,
             commands::import_words_from_json,
+            tts::play_or_generate_tts
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
-
 fn setup_tray(app: &mut tauri::App) -> Result<()> {
     let open_dashboard = MenuItem::with_id(app, "dashboard", "Open Dashboard", true, None::<&str>)?;
     let pause = MenuItem::with_id(app, "pause", "Pause Exercises", true, None::<&str>)?;
