@@ -26,3 +26,4 @@ dist-ssr
 test-data*
 *GUIDE*
 *ZMIANY*
+.env

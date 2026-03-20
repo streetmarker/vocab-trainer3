@@ -32,7 +32,7 @@ const TtsPlayer: React.FC<TtsPlayerProps> = ({ term, exampleEn }) => {
       
     } catch (err) {
       console.error('TTS Error:', err);
-      setError('Błąd TTS');
+      setError(String(err));
       setIsPlaying(false);
     }
   };
