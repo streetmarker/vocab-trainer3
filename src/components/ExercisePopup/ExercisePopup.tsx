@@ -7,6 +7,7 @@ import type {
 } from "../../types";
 import { PART_OF_SPEECH_LABELS } from "../../types";
 import { api } from "../../hooks/useTauri";
+import { formatReviewDate } from "../../utils/date";
 import "./ExercisePopup.css";
 
 interface Props {
@@ -110,9 +111,14 @@ export const ExercisePopup: React.FC<Props> = ({ exercise, onComplete, onDismiss
 
       {answered && result && exercise.type !== "Introduction" && (
         <div className={`popup-feedback ${wasCorrect ? "correct" : "incorrect"}`}>
-          {wasCorrect
-            ? `✓ Poprawnie!${result.streak > 1 ? `  🔥 Seria: ${result.streak}` : ""}`
-            : `✗ Odpowiedź: "${result.word.term}"`}
+          <div className="feedback-main">
+            {wasCorrect
+              ? `✓ Poprawnie!${result.streak > 1 ? `  🔥 Seria: ${result.streak}` : ""}`
+              : `✗ Odpowiedź: "${result.word.term}"`}
+          </div>
+          <div className="feedback-next">
+            Następna powtórka: <strong>{formatReviewDate(result.nextReviewAt)}</strong>
+          </div>
         </div>
       )}
 

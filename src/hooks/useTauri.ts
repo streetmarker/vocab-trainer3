@@ -120,6 +120,7 @@ export const api = {
     newEasiness:       number;
     streak:            number;
     nextReviewLabel:   string;
+    nextReviewAt:      string;
     nextWordId:        number | null;
     nextTermPl:        string | null;
     nextTermEn:        string | null;

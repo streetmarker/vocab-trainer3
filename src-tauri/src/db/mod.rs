@@ -35,6 +35,7 @@ pub struct WordProgress {
     pub easiness_factor: f64,
     pub interval_days: f64,
     pub repetitions: i32,
+    pub iterations: i32,
     pub next_review_at: DateTime<Utc>,
     pub last_review_at: Option<DateTime<Utc>>,
     pub total_reviews: i32,
@@ -168,6 +169,7 @@ impl Database {
         let _ = conn.execute_batch("ALTER TABLE word ADD COLUMN definition_pl TEXT;");
         let _ = conn.execute_batch("ALTER TABLE word ADD COLUMN sentence_pl TEXT;");
         let _ = conn.execute_batch("ALTER TABLE word ADD COLUMN sentence_en TEXT;");
+        let _ = conn.execute_batch("ALTER TABLE word_progress ADD COLUMN iterations INTEGER NOT NULL DEFAULT 0;");
         Ok(())
     }
 
@@ -253,7 +255,7 @@ impl Database {
         let conn = self.conn.lock();
         let existing: Option<WordProgress> = {
             let mut stmt = conn.prepare(
-                "SELECT id, word_id, easiness_factor, interval_days, repetitions,
+                "SELECT id, word_id, easiness_factor, interval_days, repetitions, iterations,
                  next_review_at, last_review_at, total_reviews, correct_reviews,
                  streak, introduced_at, session_reviews, next_session_review_at, mastery_level
                  FROM word_progress WHERE word_id = ?1",
@@ -265,14 +267,15 @@ impl Database {
 
         let now = Utc::now().to_rfc3339();
         conn.execute(
-            "INSERT INTO word_progress (word_id, easiness_factor, interval_days, repetitions,
+            "INSERT INTO word_progress (word_id, easiness_factor, interval_days, repetitions, iterations,
              next_review_at, total_reviews, correct_reviews, streak, session_reviews, mastery_level)
-             VALUES (?1, 2.5, 0.0, 0, ?2, 0, 0, 0, 0, 'new')",
+             VALUES (?1, 2.5, 0.0, 0, 0, ?2, 0, 0, 0, 0, 'new')",
             params![word_id, now],
         )?;
         let id = conn.last_insert_rowid();
         Ok(WordProgress {
-            id, word_id, easiness_factor: 2.5, interval_days: 0.0, repetitions: 0,
+            id, word_id, easiness_factor: 2.5, interval_days: 0.0,
+            repetitions: 0, iterations: 0,
             next_review_at: Utc::now(), last_review_at: None, total_reviews: 0,
             correct_reviews: 0, streak: 0, introduced_at: None, session_reviews: 0,
             next_session_review_at: None, mastery_level: MasteryLevel::New,
@@ -283,13 +286,14 @@ impl Database {
         let conn = self.conn.lock();
         conn.execute(
             "UPDATE word_progress SET
-             easiness_factor=?1, interval_days=?2, repetitions=?3,
-             next_review_at=?4, last_review_at=?5, total_reviews=?6,
-             correct_reviews=?7, streak=?8, introduced_at=?9,
-             session_reviews=?10, next_session_review_at=?11, mastery_level=?12
-             WHERE id=?13",
+             easiness_factor=?1, interval_days=?2, repetitions=?3, iterations=?4,
+             next_review_at=?5, last_review_at=?6, total_reviews=?7,
+             correct_reviews=?8, streak=?9, introduced_at=?10,
+             session_reviews=?11, next_session_review_at=?12, mastery_level=?13
+             WHERE id=?14",
             params![
                 progress.easiness_factor, progress.interval_days, progress.repetitions,
+                progress.iterations,
                 progress.next_review_at.to_rfc3339(),
                 progress.last_review_at.map(|d| d.to_rfc3339()),
                 progress.total_reviews, progress.correct_reviews, progress.streak,
@@ -309,7 +313,7 @@ impl Database {
             "SELECT w.id, w.term, w.definition, w.definition_pl, w.part_of_speech, w.phonetic,
              w.examples, w.synonyms, w.antonyms, w.tags, w.difficulty, w.created_at, w.is_active,
              w.sentence_pl, w.sentence_en,
-             p.id, p.word_id, p.easiness_factor, p.interval_days, p.repetitions,
+             p.id, p.word_id, p.easiness_factor, p.interval_days, p.repetitions, p.iterations,
              p.next_review_at, p.last_review_at, p.total_reviews, p.correct_reviews,
              p.streak, p.introduced_at, p.session_reviews, p.next_session_review_at, p.mastery_level
              FROM word w
@@ -335,14 +339,14 @@ impl Database {
             let progress = WordProgress {
                 id: row.get(15)?, word_id: row.get(16)?,
                 easiness_factor: row.get(17)?, interval_days: row.get(18)?,
-                repetitions: row.get(19)?,
-                next_review_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(20)?).unwrap().with_timezone(&Utc),
-                last_review_at: row.get::<_, Option<String>>(21)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
-                total_reviews: row.get(22)?, correct_reviews: row.get(23)?, streak: row.get(24)?,
-                introduced_at: row.get::<_, Option<String>>(25)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
-                session_reviews: row.get(26)?,
-                next_session_review_at: row.get::<_, Option<String>>(27)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
-                mastery_level: MasteryLevel::from_str(&row.get::<_, String>(28).unwrap_or_default()),
+                repetitions: row.get(19)?, iterations: row.get(20)?,
+                next_review_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(21)?).unwrap().with_timezone(&Utc),
+                last_review_at: row.get::<_, Option<String>>(22)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
+                total_reviews: row.get(23)?, correct_reviews: row.get(24)?, streak: row.get(25)?,
+                introduced_at: row.get::<_, Option<String>>(26)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
+                session_reviews: row.get(27)?,
+                next_session_review_at: row.get::<_, Option<String>>(28)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
+                mastery_level: MasteryLevel::from_str(&row.get::<_, String>(29).unwrap_or_default()),
             };
             Ok((word, progress))
         })?.collect::<Result<Vec<_>, _>>()?;
@@ -458,34 +462,18 @@ impl Database {
              LEFT JOIN word_progress p ON w.id = p.word_id
              WHERE w.is_active = 1
                AND w.id != ?2
-             ORDER BY (
-               -- ── Mastery tier (higher = more urgent) ──────────────────────
-               CASE
-                 WHEN p.mastery_level IS NULL OR p.mastery_level = 'new'      THEN 40
-                 WHEN p.mastery_level = 'learning'                             THEN 30
-                 WHEN p.mastery_level = 'reviewing'                            THEN 10
-                 ELSE 0
-               END
-
-               -- ── SM-2 review schedule ──────────────────────────────────────
-               + CASE
-                   WHEN p.next_review_at IS NULL          THEN 20
-                   WHEN p.next_review_at < ?1             THEN 25
-                   WHEN DATE(p.next_review_at) = DATE(?1) THEN 15
-                   ELSE 0
-                 END
-
-               -- ── Repetitions (fewer = higher priority) ────────────────────
-               + CASE
-                   WHEN p.repetitions IS NULL OR p.repetitions = 0 THEN 20
-                   WHEN p.repetitions <= 2                          THEN 10
-                   WHEN p.repetitions <= 5                          THEN  5
-                   ELSE 0
-                 END
-
-               -- ── Small random jitter prevents identical ordering ───────────
-               + (RANDOM() % 8)
-             ) DESC
+               AND (
+                 p.next_review_at IS NULL 
+                 OR p.next_review_at <= ?1
+                 OR p.mastery_level = 'new'
+               )
+             ORDER BY 
+               -- 1. Pilne powtórki (najpierw najbardziej opóźnione)
+               CASE WHEN p.next_review_at <= ?1 THEN p.next_review_at ELSE '9999' END ASC,
+               -- 2. Nowe słowa (zawsze w drugiej kolejności)
+               CASE WHEN p.mastery_level = 'new' OR p.mastery_level IS NULL THEN 0 ELSE 1 END ASC,
+               -- 3. Mała losowość dla słów o tym samym priorytecie
+               RANDOM()
              LIMIT 1",
             rusqlite::params![now, excl],
             |r| r.get::<_, i64>(0),
@@ -543,14 +531,15 @@ fn row_to_word(row: &rusqlite::Row) -> rusqlite::Result<Word> {
 fn row_to_progress(row: &rusqlite::Row) -> rusqlite::Result<WordProgress> {
     Ok(WordProgress {
         id: row.get(0)?, word_id: row.get(1)?,
-        easiness_factor: row.get(2)?, interval_days: row.get(3)?, repetitions: row.get(4)?,
-        next_review_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?).unwrap().with_timezone(&Utc),
-        last_review_at: row.get::<_, Option<String>>(6)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
-        total_reviews: row.get(7)?, correct_reviews: row.get(8)?, streak: row.get(9)?,
-        introduced_at: row.get::<_, Option<String>>(10)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
-        session_reviews: row.get(11)?,
-        next_session_review_at: row.get::<_, Option<String>>(12)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
-        mastery_level: MasteryLevel::from_str(&row.get::<_, String>(13).unwrap_or_default()),
+        easiness_factor: row.get(2)?, interval_days: row.get(3)?,
+        repetitions: row.get(4)?, iterations: row.get(5)?,
+        next_review_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(6)?).unwrap().with_timezone(&Utc),
+        last_review_at: row.get::<_, Option<String>>(7)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
+        total_reviews: row.get(8)?, correct_reviews: row.get(9)?, streak: row.get(10)?,
+        introduced_at: row.get::<_, Option<String>>(11)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
+        session_reviews: row.get(12)?,
+        next_session_review_at: row.get::<_, Option<String>>(13)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
+        mastery_level: MasteryLevel::from_str(&row.get::<_, String>(14).unwrap_or_default()),
     })
 }
 
@@ -581,6 +570,7 @@ CREATE TABLE IF NOT EXISTS word_progress (
     easiness_factor         REAL NOT NULL DEFAULT 2.5,
     interval_days           REAL NOT NULL DEFAULT 0.0,
     repetitions             INTEGER NOT NULL DEFAULT 0,
+    iterations              INTEGER NOT NULL DEFAULT 0,
     next_review_at          TEXT NOT NULL,
     last_review_at          TEXT,
     total_reviews           INTEGER NOT NULL DEFAULT 0,

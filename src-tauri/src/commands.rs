@@ -601,6 +601,7 @@ pub struct SrsResult {
     pub streak:            i32,
     /// Human-readable next review time, e.g. "za 6 dni" or "za 10 minut"
     pub next_review_label: String,
+    pub next_review_at:    String,
     // ── Next card (None = session complete / DB empty) ───────────────────────
     pub next_word_id:         Option<i64>,
     pub next_term_pl:         Option<String>,
@@ -694,6 +695,7 @@ pub async fn srs_answer(
         new_easiness:      result.new_ef,
         streak:            result.streak,
         next_review_label,
+        next_review_at:    result.next_review_at,
         next_word_id,
         next_term_pl,
         next_term_en,

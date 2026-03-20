@@ -281,14 +281,30 @@
 
 /* ── Feedback bar ───────────────────────────────────────────────────────────── */
 .popup-feedback {
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
+  padding: 10px 14px;
+  border-radius: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   animation: fadeIn 0.2s ease;
 }
-.popup-feedback.correct { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; }
-.popup-feedback.incorrect { background: rgba(239, 68, 68, 0.15); color: #fca5a5; }
+.popup-feedback.correct { background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+.popup-feedback.incorrect { background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.2); color: #fca5a5; }
+
+.feedback-main {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.feedback-next {
+  font-size: 11px;
+  opacity: 0.85;
+  font-weight: 400;
+}
+.feedback-next strong {
+  font-weight: 700;
+  color: white;
+}
 
 /* ── Type badge ─────────────────────────────────────────────────────────────── */
 .popup-type-badge {

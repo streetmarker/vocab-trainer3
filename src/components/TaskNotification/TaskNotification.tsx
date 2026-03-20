@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { Flashcard, type SrsGrade } from "../Flashcard/Flashcard";
 import { api } from "../../hooks/useTauri";
+import { formatReviewDate } from "../../utils/date";
 import TtsPlayer from "../TtsPlayer";
 
 const appWindow    = getCurrentWebviewWindow();
@@ -20,7 +21,7 @@ type WordState = {
   sentencePl?: string | null; sentenceEn?: string | null;
 };
 type FeedbackState = {
-  grade: SrsGrade; mastery: string; intervalLabel: string; streak: number;
+  grade: SrsGrade; mastery: string; nextReviewAt: string; streak: number;
 };
 
 const MASTERY_COLORS: Record<string, string> = {
@@ -40,7 +41,12 @@ const GRADE_ICONS: Record<SrsGrade, string> = {
  * if no markers are found.
  */
 function parseBold(sentence: string): React.ReactNode {
+  if (sentence.includes("--")) {
+    sentence = sentence.replace(/--/g, "**");
+  }
   if (!sentence.includes("**")) return sentence;
+  // else if includes "--" replace that with "**"
+
   const parts = sentence.split(/(\*\*[^*]+\*\*)/g);
   return (
     <>
@@ -116,7 +122,7 @@ export function TaskNotification({ termPl, termEn, partOfSpeech, phonetic, sente
       setFeedback({
         grade,
         mastery:       result.newMastery,
-        intervalLabel: result.nextReviewLabel,
+        nextReviewAt:  result.nextReviewAt,
         streak:        result.streak,
       });
       setInnerPhase("feedback");
@@ -229,7 +235,7 @@ export function TaskNotification({ termPl, termEn, partOfSpeech, phonetic, sente
               <div className="fc-back-sentence">{parseBold(word.sentenceEn ?? "")}</div>
               <TtsPlayer 
                 term={word.termEn} 
-                exampleEn={trimMarkers(word.sentenceEn as string) ?? ""} 
+                exampleEn={trimMarkers(word.sentenceEn ?? "")} 
               />
             </div>
           }
@@ -248,7 +254,7 @@ export function TaskNotification({ termPl, termEn, partOfSpeech, phonetic, sente
         >
           <span className="tn-feedback__icon">{GRADE_ICONS[feedback.grade]}</span>
           <span className="tn-feedback__mastery">{MASTERY_LABELS[feedback.mastery] ?? feedback.mastery}</span>
-          <span className="tn-feedback__interval">{feedback.intervalLabel}</span>
+          <span className="tn-feedback__interval">{formatReviewDate(feedback.nextReviewAt)}</span>
           {feedback.streak > 1 && <span className="tn-feedback__streak">🔥 {feedback.streak}</span>}
         </div>
       )}

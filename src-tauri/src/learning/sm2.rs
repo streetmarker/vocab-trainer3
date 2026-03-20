@@ -26,20 +26,15 @@ pub struct Sm2Result {
     pub easiness_factor: f64,
     pub interval_days: f64,
     pub repetitions: i32,
+    pub iterations: i32,
     pub mastery_level: MasteryLevel,
 }
 
-/// Calculate the next SM-2 state for a word given the user's quality rating.
-///
-/// # Arguments
-/// * `progress`   – Current progress record for the word
-/// * `quality`    – User quality rating 0-5
-/// * `difficulty` – Word difficulty 1-5 (higher = smaller intervals)
 pub fn calculate_next(progress: &WordProgress, quality: i32, difficulty: i32) -> Sm2Result {
     debug_assert!((0..=5).contains(&quality), "quality must be 0-5");
 
     let old_ef = progress.easiness_factor;
-    let old_reps = progress.repetitions;
+    let old_iterations = progress.iterations;
 
     // ── Update Easiness Factor ────────────────────────────────────────────
     let q = quality as f64;
@@ -47,50 +42,50 @@ pub fn calculate_next(progress: &WordProgress, quality: i32, difficulty: i32) ->
         .max(1.3)  // EF cannot drop below 1.3
         .min(3.5); // practical ceiling
 
-    // ── Update Interval ───────────────────────────────────────────────────
-    let (new_reps, raw_interval) = if quality < 3 {
-        // Failed recall → reset to relearning
-        (0, 0.0_f64)
+    // ── Update Interval & Iterations ──────────────────────────────────────
+    let (new_iterations, raw_interval) = if quality < 3 {
+        // Failed recall → reset iterations
+        (0, 1.0_f64) // Return to review after 1 day
     } else {
-        let next_reps = old_reps + 1;
-        let interval = match next_reps {
+        let next_iterations = old_iterations + 1;
+        let interval = match next_iterations {
             1 => 1.0,
             2 => 6.0,
-            _ => progress.interval_days * new_ef,
+            _ => (progress.interval_days * new_ef).round(),
         };
-        (next_reps, interval)
+        (next_iterations, interval)
     };
 
     // ── Difficulty Modifier ───────────────────────────────────────────────
-    // Words with higher difficulty get shorter intervals to reinforce more
     let difficulty_factor = match difficulty {
-        1 => 1.2, // easy words - slightly longer intervals
+        1 => 1.2, 
         2 => 1.0,
         3 => 0.85,
         4 => 0.70,
-        5 => 0.55, // very hard words - much shorter intervals
+        5 => 0.55, 
         _ => 1.0,
     };
-    let adjusted_interval = (raw_interval * difficulty_factor).max(0.0);
+    let adjusted_interval = (raw_interval * difficulty_factor).max(1.0);
 
     // ── Mastery Level Transition ──────────────────────────────────────────
-    let mastery_level = determine_mastery(new_reps, adjusted_interval, quality);
+    let mastery_level = determine_mastery(new_iterations, adjusted_interval, quality);
 
     Sm2Result {
         easiness_factor: new_ef,
         interval_days: adjusted_interval,
-        repetitions: new_reps,
+        repetitions: progress.repetitions + 1,
+        iterations: new_iterations,
         mastery_level,
     }
 }
 
-/// Apply SM-2 result to a progress record, updating timestamps.
 pub fn apply_result(progress: &mut WordProgress, result: Sm2Result, quality: i32) {
     let now = Utc::now();
 
     progress.easiness_factor = result.easiness_factor;
     progress.interval_days = result.interval_days;
     progress.repetitions = result.repetitions;
+    progress.iterations = result.iterations;
     progress.mastery_level = result.mastery_level;
     progress.last_review_at = Some(now);
     progress.total_reviews += 1;
@@ -104,14 +99,20 @@ pub fn apply_result(progress: &mut WordProgress, result: Sm2Result, quality: i32
 
     // Compute next_review_at from interval
     let interval_secs = (result.interval_days * 86_400.0) as i64;
-    progress.next_review_at = now + Duration::seconds(interval_secs.max(30));
+    let mut next_date = now + Duration::seconds(interval_secs.max(30));
 
-    // Set introduced_at on first ever review
+    // Safety Cooldown: Jeśli odpowiedź była Good/Easy (>=4), wymuś min. 12h przerwy
+    // zapobiega to zapętleniu słowa w tej samej sesji pracy.
+    if quality >= 4 && result.interval_days < 0.5 {
+        next_date = now + Duration::hours(12);
+    }
+    
+    progress.next_review_at = next_date;
+
     if progress.introduced_at.is_none() {
         progress.introduced_at = Some(now);
     }
 
-    // Update session micro-interval counter
     progress.session_reviews += 1;
     progress.next_session_review_at = Some(compute_session_interval(progress.session_reviews));
 }

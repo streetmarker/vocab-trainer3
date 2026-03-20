@@ -56,11 +56,6 @@ impl LearningEngine {
         let sm2_result = calculate_next(&progress, quality, word.difficulty);
         apply_result(&mut progress, sm2_result, quality);
 
-        // Session micro-interval (separate from inter-day SM-2 interval)
-        progress.session_reviews += 1;
-        progress.next_session_review_at =
-            Some(sm2::compute_session_interval(progress.session_reviews));
-
         self.db.update_progress(&progress)?;
 
         let history = ExerciseHistory {
