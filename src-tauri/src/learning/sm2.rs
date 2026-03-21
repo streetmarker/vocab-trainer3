@@ -189,6 +189,7 @@ mod tests {
             easiness_factor: 2.5,
             interval_days: 0.0,
             repetitions: 0,
+            iterations: 0,
             next_review_at: Utc::now(),
             last_review_at: None,
             total_reviews: 0,
@@ -205,18 +206,19 @@ mod tests {
     fn first_correct_review_gives_1_day() {
         let p = fresh_progress();
         let r = calculate_next(&p, 4, 2);
-        assert_eq!(r.repetitions, 1);
+        assert_eq!(r.iterations, 1);
         assert!((r.interval_days - 1.0).abs() < 0.1);
     }
 
     #[test]
-    fn failed_recall_resets_repetitions() {
+    fn failed_recall_resets_iterations() {
         let mut p = fresh_progress();
-        p.repetitions = 5;
+        p.iterations = 5;
         p.interval_days = 21.0;
         let r = calculate_next(&p, 2, 2);
-        assert_eq!(r.repetitions, 0);
-        assert_eq!(r.interval_days, 0.0);
+        assert_eq!(r.iterations, 0);
+        // In the new logic, we return to review after 1 day even on failure
+        assert_eq!(r.interval_days, 1.0);
     }
 
     #[test]

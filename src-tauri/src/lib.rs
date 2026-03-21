@@ -284,22 +284,20 @@ pub fn run() {
         log::warn!("GOOGLE_APPLICATION_CREDENTIALS not found in environment");
     }
 
-    // Log levels:
-    //   RUST_LOG=debug                    → all debug output (very verbose)
-    //   RUST_LOG=vocab_trainer_lib=debug  → only this crate at debug
-    // Default: scheduler at info (condition table printed on every change),
-    //          everything else at info.
-    // Crate lib name is vocab_trainer_lib (see Cargo.toml [lib] name = "vocab_trainer_lib")
-    env_logger::Builder::from_env(
-        env_logger::Env::default()
-            .default_filter_or("info"),
-    )
-    .format(|buf, record| {
-        use std::io::Write;
-        let ts = chrono::Local::now().format("%H:%M:%S%.3f");
-        writeln!(buf, "[{ts}] {:<5} {}", record.level(), record.args())
-    })
-    .init();
+    // Inicjalizuj logger tylko w trybie debug, aby uniknąć konsoli w Release
+    #[cfg(debug_assertions)]
+    {
+        env_logger::Builder::from_env(
+            env_logger::Env::default()
+                .default_filter_or("info"),
+        )
+        .format(|buf, record| {
+            use std::io::Write;
+            let ts = chrono::Local::now().format("%H:%M:%S%.3f");
+            writeln!(buf, "[{ts}] {:<5} {}", record.level(), record.args())
+        })
+        .init();
+    }
 
     tauri::Builder::default()
         .plugin(tauri_plugin_autostart::init(
@@ -392,7 +390,8 @@ pub fn run() {
                 let handle      = app.handle().clone();
                 let sched_clone = Arc::clone(&scheduler);
                 tauri::async_runtime::spawn(async move {
-                    tokio::time::sleep(std::time::Duration::from_secs(40)).await;
+                    // Czekamy 90 sekund, aż system w pełni "wstanie" (WiFi, usługi)
+                    tokio::time::sleep(std::time::Duration::from_secs(90)).await;
                     if let Ok(Some((word, _))) = db_clone.get_session_word() {
                         sched_clone.record_popup_showing(); // blocks scheduler loop
                         show_task_notification(&handle, &word);
