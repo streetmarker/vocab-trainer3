@@ -59,25 +59,28 @@ pub fn show_task_notification(app: &tauri::AppHandle, word: &db::Word) {
     //   - Min height: 200px (minimum content space)
     //   - Max height: 600px (don't dominate screen)
 
-    const WIDTH_PCT: f64 = 0.22;    // 22% of logical screen width
-    const HEIGHT_PCT: f64 = 0.35;   // 35% of logical screen height
-    const WIDTH_MIN: f64 = 300.0;   // minimum width (logical px)
-    const WIDTH_MAX: f64 = 480.0;   // maximum width (logical px) — increased for better content fit
-    const HEIGHT_MIN: f64 = 200.0;  // minimum height (logical px)
-    const HEIGHT_MAX: f64 = 600.0;  // maximum height (logical px)
-
+    // ── Adaptive Window Engine (Proposal 2) ──────────────────────────────────
+    const BASE_WIDTH: f64 = 380.0;
+    const BASE_HEIGHT: f64 = 280.0;
+    
     let (win_w_log, win_h_log) = if let Ok(Some(monitor)) = app.primary_monitor() {
-        let scale    = monitor.scale_factor();
-        let phys_w   = monitor.size().width as f64;
-        let phys_h   = monitor.size().height as f64;
-        let logical_w = phys_w / scale;
-        let logical_h = phys_h / scale;
-        
-        let w = (logical_w * WIDTH_PCT).clamp(WIDTH_MIN, WIDTH_MAX);
-        let h = (logical_h * HEIGHT_PCT).clamp(HEIGHT_MIN, HEIGHT_MAX);
-        (w, h)
+        let scale = monitor.scale_factor();
+        let phys_w = monitor.size().width as f64;
+        let logical_screen_w = phys_w / scale;
+
+        // Baza skalowana o DPI (które odzwierciedla rozmiar tekstu w Win11)
+        let mut target_w = BASE_WIDTH;
+        let mut target_h = BASE_HEIGHT;
+
+        // Clamp: okno nie może zająć mniej niż 20% i więcej niż 45% szerokości ekranu
+        let min_w = logical_screen_w * 0.20;
+        let max_w = logical_screen_w * 0.45;
+        target_w = target_w.clamp(min_w, max_w);
+        target_h = target_h * (target_w / BASE_WIDTH);
+
+        (target_w, target_h)
     } else {
-        (360.0, 280.0) // fallback if monitor query fails
+        (BASE_WIDTH, BASE_HEIGHT)
     };
 
     // termPl = Polish definition shown bold on flashcard front
@@ -207,28 +210,55 @@ pub fn show_task_notification(app: &tauri::AppHandle, word: &db::Word) {
 }
 
 pub fn show_popup(app: &tauri::AppHandle, word_id: i64) {
-    // 1. Zapisujemy ID słowa w stanie aplikacji (frontend pobierze je po montowaniu)
+    // 1. Zapisujemy ID słowa w stanie aplikacji
     if let Some(state) = app.try_state::<commands::AppState>() {
         if let Ok(mut pending) = state.pending_word_id.lock() {
             *pending = Some(word_id);
         }
     }
 
+    // ── Adaptive Window Engine (Proposal 2) ──────────────────────────────────
+    const BASE_WIDTH: f64 = 420.0;
+    const BASE_HEIGHT: f64 = 700.0;
+
+    let (win_w, win_h) = if let Ok(Some(monitor)) = app.primary_monitor() {
+        let scale = monitor.scale_factor();
+        let phys_w = monitor.size().width as f64;
+        let logical_screen_w = phys_w / scale;
+
+        let mut target_w = BASE_WIDTH;
+        
+        // Clamp: okno nie może zająć mniej niż 20% i więcej niż 45% szerokości ekranu
+        let min_w = logical_screen_w * 0.20;
+        let max_w = logical_screen_w * 0.45;
+        target_w = target_w.clamp(min_w, max_w);
+        
+        let target_h = BASE_HEIGHT * (target_w / BASE_WIDTH);
+        (target_w, target_h)
+    } else {
+        (BASE_WIDTH, BASE_HEIGHT)
+    };
+
     // 2. Dynamiczne budowanie okna
-    let _ = tauri::WebviewWindowBuilder::new(
+    let popup_window = tauri::WebviewWindowBuilder::new(
         app,
         "popup",
         tauri::WebviewUrl::App("popup.html".into()),
     )
     .title("Ćwiczenie")
-    .inner_size(360.0, 480.0)
+    .inner_size(win_w, win_h)
     .decorations(false)
     .transparent(true)
     .always_on_top(true)
     .skip_taskbar(true)
-    .resizable(false)
-    .visible(true) // Okno pojawia się od razu
+    .resizable(true)
+    .visible(true)
+    .zoom_hotkeys_enabled(false)
     .build();
+
+    if let Ok(w) = popup_window {
+        let _ = w.set_zoom(1.0);
+    }
 
     // 3. Emitujemy zdarzenie po krótkim czasie (cold-start delay)
     let app_clone = app.clone();
