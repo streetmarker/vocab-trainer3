@@ -64,18 +64,25 @@ pub async fn play_or_generate_tts<R: Runtime>(
     
     let response = client
         .post("https://vocab-tts-proxy-1092910876208.europe-west1.run.app/text-to-speech")
-        .header("x-api-key", std::env::var("API_PROXY_KEY").unwrap_or_default())
+        .header("x-api-key", option_env!("API_PROXY_KEY").unwrap_or(""))
         .json(&serde_json::json!({
             "text": payload.text 
         }))
         .send()
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("Network error: {}", e))?;
 
-    let json: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
+    if !response.status().is_success() {
+        let status = response.status();
+        let error_body = response.text().await.unwrap_or_default();
+        log::error!("Proxy error ({}): {}", status, error_body);
+        return Err(format!("Proxy error ({}): {}", status, error_body));
+    }
+
+    let json: serde_json::Value = response.json().await.map_err(|e| format!("Failed to parse JSON: {}", e))?;
     let audio_content = json["audioContent"]
         .as_str()
-        .ok_or("No audio content in response")?;
+        .ok_or("No audio content in proxy response")?;
 
     // 4. Dekodowanie Base64 i zapis do TYMCZASOWEGO pliku (unika race conditions)
     let bytes = general_purpose::STANDARD

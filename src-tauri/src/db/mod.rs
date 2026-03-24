@@ -490,19 +490,8 @@ impl Database {
                     Ok(None)
                 }
             }
-            // No rows = empty DB or only the excluded word exists.
-            // Fall back to excluded word so the session doesn't stall.
-            Err(rusqlite::Error::QueryReturnedNoRows) => {
-                if let Some(id) = exclude_id {
-                    drop(conn);
-                    let word = self.get_word_by_id(id)?;
-                    if let Some(w) = word {
-                        let progress = self.get_or_create_progress(w.id)?;
-                        return Ok(Some((w, progress)));
-                    }
-                }
-                Ok(None)
-            }
+            // No rows = empty DB or all due words completed.
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(e.into()),
         }
     }

@@ -28,12 +28,13 @@ const MASTERY_COLORS: Record<string, string> = {
   new: "#94a3b8", learning: "#a78bfa", reviewing: "#60a5fa", mastered: "#4ade80",
 };
 const MASTERY_LABELS: Record<string, string> = {
-  new: "Nowe", learning: "W nauce", reviewing: "Utrwalanie", mastered: "Opanowane",
-};
-const GRADE_ICONS: Record<SrsGrade, string> = {
-  again: "↩", hard: "〜", good: "✓", easy: "⚡",
+  new: "Nowe", learning: "W nauce", reviewing: "Powtórka", mastered: "Opanowane",
+  complete: "Sesja ukończona! 🎉"
 };
 
+const GRADE_ICONS: Record<string, string> = {
+  again: "🔄", hard: "🧠", good: "✅", easy: "✨",
+};
 /**
 /**
  * Parses **text** markers and returns a React node with those segments
@@ -149,7 +150,15 @@ export function TaskNotification({ termPl, termEn, partOfSpeech, phonetic, sente
           startRef.current   = performance.now();
           rafRef.current     = requestAnimationFrame(tick);
         } else {
-          hardClose();
+          // Koniec kolejki - ładny komunikat przed zamknięciem
+          setInnerPhase("feedback");
+          setFeedback({
+            grade: "good",
+            mastery: "complete", // Klucz do etykiety 'Sesja ukończona!'
+            nextReviewAt: new Date().toISOString(),
+            streak: 0
+          });
+          setTimeout(hardClose, 2000);
         }
       }, FEEDBACK_MS);
 
