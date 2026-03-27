@@ -85,6 +85,7 @@ export function TaskNotification({ termPl, termEn, partOfSpeech, phonetic, sente
   const elapsedRef = useRef<number>(0);
   const pausedRef  = useRef(false);
   const closedRef  = useRef(false);
+  const isHoveringRef = useRef(false);
 
   const hardClose = useCallback((skipGapReset = false) => {
     if (closedRef.current) return;
@@ -109,8 +110,9 @@ export function TaskNotification({ termPl, termEn, partOfSpeech, phonetic, sente
 
   const handleCardFlip = useCallback(() => {
     setInnerPhase("flipped");
-    pausedRef.current   = true;
-    elapsedRef.current += performance.now() - startRef.current;
+    // We do NOT pause here anymore.
+    // The user requested: "mouse on popup -> pause, mouse out -> run, REGARDLESS of other functionality".
+    // So if you flip but are NOT hovering, the timer should run.
   }, []);
 
   const handleGrade = useCallback(async (grade: SrsGrade) => {
@@ -146,9 +148,17 @@ export function TaskNotification({ termPl, termEn, partOfSpeech, phonetic, sente
           setCardKey(k => k + 1);
           setProgress(100);
           elapsedRef.current = 0;
-          pausedRef.current  = false;
-          startRef.current   = performance.now();
-          rafRef.current     = requestAnimationFrame(tick);
+          
+          // STRICT TIMER LOGIC:
+          // Resume ONLY if not hovering.
+          // If hovering, we stay paused (pausedRef=true).
+          pausedRef.current = isHoveringRef.current;
+          
+          if (!pausedRef.current) {
+            startRef.current = performance.now();
+          }
+          
+          rafRef.current = requestAnimationFrame(tick);
         } else {
           // Koniec kolejki - ładny komunikat przed zamknięciem
           setInnerPhase("feedback");
@@ -188,14 +198,25 @@ export function TaskNotification({ termPl, termEn, partOfSpeech, phonetic, sente
   }, [tick]);
 
   const onMouseEnter = () => {
-    if (closedRef.current || innerPhase !== "idle") return;
-    pausedRef.current   = true;
-    elapsedRef.current += performance.now() - startRef.current;
+    if (closedRef.current) return;
+    isHoveringRef.current = true;
+    
+    // Always pause on hover, regardless of phase
+    if (!pausedRef.current) {
+      pausedRef.current = true;
+      elapsedRef.current += performance.now() - startRef.current;
+    }
   };
+
   const onMouseLeave = () => {
-    if (closedRef.current || innerPhase !== "idle") return;
-    pausedRef.current = false;
-    startRef.current  = performance.now();
+    if (closedRef.current) return;
+    isHoveringRef.current = false;
+
+    // Always resume on leave, regardless of phase
+    if (pausedRef.current) {
+      pausedRef.current = false;
+      startRef.current = performance.now();
+    }
   };
 
   const isFlipped = innerPhase !== "idle";

@@ -85,7 +85,23 @@ export const Dashboard: React.FC = () => {
           </div>
         ) : (
           <div className="word-grid">
-            {words.map((w) => <WordCard key={w.id} word={w} />)}
+            {words.map((w) => (
+              <WordCard
+                key={w.id}
+                word={w}
+                onDelete={async (id) => {
+                  if (confirm(`Czy na pewno usunąć słowo "${w.term}"?`)) {
+                    try {
+                      await api.deleteWord(id);
+                      setWords(prev => prev.filter(item => item.id !== id));
+                    } catch (e) {
+                      console.error("Failed to delete word:", e);
+                      alert("Błąd podczas usuwania słowa.");
+                    }
+                  }
+                }}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -148,8 +164,19 @@ const ActivityHeatmap: React.FC<{ data: ActivityDay[] }> = ({ data }) => {
   );
 };
 
-const WordCard: React.FC<{ word: Word }> = ({ word }) => (
+const WordCard: React.FC<{ word: Word; onDelete: (id: number) => void }> = ({ word, onDelete }) => (
   <div className="word-card">
+    <button
+      className="wc-delete-btn"
+      onClick={(e) => {
+        e.stopPropagation();
+        onDelete(word.id);
+      }}
+      title="Usuń słowo"
+      aria-label="Usuń słowo"
+    >
+      ✕
+    </button>
     <span className="wc-term">{word.term}</span>
     <span className="wc-pos">{PART_OF_SPEECH_LABELS[word.partOfSpeech] ?? word.partOfSpeech}</span>
     <span className="wc-def">{word.definition}</span>

@@ -207,13 +207,37 @@
   flex-direction: column;
   gap: 5px;
   transition: border-color 0.2s, transform 0.2s;
+  position: relative;
 }
 .word-card:hover {
   border-color: rgba(255,255,255,0.12);
   transform: translateY(-2px);
 }
 
-.wc-term { font-size: 16px; font-weight: 800; color: white; letter-spacing: -0.02em; }
+.wc-delete-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  opacity: 0;
+}
+.word-card:hover .wc-delete-btn {
+  opacity: 1;
+}
+.wc-delete-btn:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.wc-term { font-size: 16px; font-weight: 800; color: white; letter-spacing: -0.02em; padding-right: 20px; }
 .wc-pos  { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
 .wc-def  { font-size: 11px; color: var(--muted); line-height: 1.5; flex: 1; }
 .wc-footer { display: flex; justify-content: flex-end; }

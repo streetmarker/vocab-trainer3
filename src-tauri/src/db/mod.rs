@@ -237,7 +237,7 @@ impl Database {
 
     pub fn delete_word(&self, id: i64) -> Result<()> {
         let conn = self.conn.lock();
-        conn.execute("UPDATE word SET is_active = 0 WHERE id = ?1", [id])?;
+        conn.execute("DELETE FROM word WHERE id = ?1", [id])?;
         Ok(())
     }
 
