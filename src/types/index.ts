@@ -256,3 +256,16 @@ export const PART_OF_SPEECH_LABELS: Record<string, string> = {
   interjection: "wykrzyknik",
   phrase: "wyrażenie",
 };
+
+// ─── Mentor Types ─────────────────────────────────────────────────────────────
+
+export interface MentorTip {
+  wordId: number;
+  term: string;
+  mnemonic: string;
+  businessStory: string;
+  deepDiveExplanation: string;
+  generatedAt: string;
+}
+
+export type MentorPayload = Record<number, MentorTip>;

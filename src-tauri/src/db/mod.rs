@@ -249,6 +249,25 @@ impl Database {
         Ok(deleted)
     }
 
+    pub fn get_struggling_words(&self, limit: i32) -> Result<Vec<Word>> {
+        let conn = self.conn.lock();
+        let mut stmt = conn.prepare(
+            "SELECT w.id, w.term, w.definition, w.definition_pl, w.part_of_speech, w.phonetic,
+             w.examples, w.synonyms, w.antonyms, w.tags, w.difficulty, w.created_at, w.is_active,
+             w.sentence_pl, w.sentence_en
+             FROM word w
+             JOIN exercise_history h ON w.id = h.word_id
+             WHERE w.is_active = 1
+             GROUP BY w.id
+             HAVING COUNT(CASE WHEN h.was_correct = 0 THEN 1 END) >= 1
+                OR AVG(h.response_time_ms) > 3000
+             ORDER BY COUNT(CASE WHEN h.was_correct = 0 THEN 1 END) DESC, AVG(h.response_time_ms) DESC
+             LIMIT ?1",
+        )?;
+        let words = stmt.query_map([limit], row_to_word)?.collect::<Result<Vec<_>, _>>()?;
+        Ok(words)
+    }
+
     // ─── Progress Queries ──────────────────────────────────────────────────
 
     pub fn get_or_create_progress(&self, word_id: i64) -> Result<WordProgress> {

@@ -437,6 +437,9 @@ pub fn run() {
             commands::srs_answer,
             commands::initialize_autostart,
             commands::import_words_from_json,
+            commands::get_struggling_words,
+            commands::get_mentor_tips,
+            commands::save_mentor_tips,
             tts::play_or_generate_tts
         ])
         .run(tauri::generate_context!())

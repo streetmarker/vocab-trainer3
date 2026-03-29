@@ -142,6 +142,15 @@ export const api = {
     skipped: number;
     warnings: string[];
   }> => invoke("import_words_from_json", { json }),
+
+  getStrugglingWords: (limit: number): Promise<Word[]> =>
+    invoke("get_struggling_words", { limit }),
+
+  getMentorTips: (): Promise<Record<number, import("../types").MentorTip>> =>
+    invoke("get_mentor_tips"),
+
+  saveMentorTips: (tips: Record<number, import("../types").MentorTip>): Promise<void> =>
+    invoke("save_mentor_tips", { tips }),
 };
 
 export function useTauriEvent<T = unknown>(

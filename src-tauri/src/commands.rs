@@ -852,11 +852,45 @@ pub async fn initialize_autostart(app: tauri::AppHandle) -> Result<(), String> {
     // Wykonaj tylko, jeśli aplikacja nie była jeszcze inicjalizowana
     if !flag_path.exists() {
         log::info!("Pierwsze uruchomienie: Konfiguracja autostartu...");
-        let _ = app.autolaunch().enable();
-        
-        // Tworzymy pusty plik jako znacznik ukończenia konfiguracji
-        std::fs::write(flag_path, "1").map_err(|e| e.to_string())?;
-    }
-    
-    Ok(())
-}
+            let _ = app.autolaunch().enable();
+
+            // Tworzymy pusty plik jako znacznik ukończenia konfiguracji
+            std::fs::write(flag_path, "1").map_err(|e| e.to_string())?;
+        }
+
+        Ok(())
+        }
+
+        // ─── AI Mentor Commands ───────────────────────────────────────────────────────
+
+        #[tauri::command]
+        pub async fn get_struggling_words(
+        limit: i32,
+        state: State<'_, AppState>,
+        ) -> Result<Vec<Word>, String> {
+        state.db.get_struggling_words(limit).map_err(|e| e.to_string())
+        }
+
+        #[tauri::command]
+        pub async fn get_mentor_tips(
+        state: State<'_, AppState>,
+        ) -> Result<serde_json::Value, String> {
+        let path = state.data_dir.join("mentor-tips.json");
+        if !path.exists() {
+            return Ok(serde_json::json!({}));
+        }
+        let content = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        let json: serde_json::Value = serde_json::from_str(&content).map_err(|e| e.to_string())?;
+        Ok(json)
+        }
+
+        #[tauri::command]
+        pub async fn save_mentor_tips(
+        tips: serde_json::Value,
+        state: State<'_, AppState>,
+        ) -> Result<(), String> {
+        let path = state.data_dir.join("mentor-tips.json");
+        let content = serde_json::to_string_pretty(&tips).map_err(|e| e.to_string())?;
+        std::fs::write(path, content).map_err(|e| e.to_string())?;
+        Ok(())
+        }

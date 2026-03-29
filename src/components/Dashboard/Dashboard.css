@@ -32,6 +32,37 @@
   align-items: flex-start;
 }
 
+.header-right {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.mentor-trigger-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(108, 99, 255, 0.2);
+}
+
+.mentor-trigger-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(108, 99, 255, 0.3);
+  filter: brightness(1.1);
+}
+
+.btn-icon {
+  font-size: 18px;
+}
+
 .dash-title {
   font-size: 28px;
   font-weight: 800;

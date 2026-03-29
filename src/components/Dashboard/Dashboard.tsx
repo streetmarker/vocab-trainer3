@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import type { OverallStats, ActivityDay, Word } from "../../types";
 import { DIFFICULTY_LABELS, DIFFICULTY_COLORS, PART_OF_SPEECH_LABELS } from "../../types";
 import { api } from "../../hooks/useTauri";
+import { MentorCenter } from "../Mentor/MentorCenter";
 import "./Dashboard.css";
 
 export const Dashboard: React.FC = () => {
@@ -11,6 +12,7 @@ export const Dashboard: React.FC = () => {
   const [words, setWords]           = useState<Word[]>([]);
   const [currentWord, setCurrentWord] = useState<Word | null>(null);
   const [loading, setLoading]       = useState(true);
+  const [showMentor, setShowMentor] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -29,6 +31,10 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 
+  if (showMentor) {
+    return <MentorCenter onClose={() => setShowMentor(false)} />;
+  }
+
   return (
     <div className="dashboard">
 
@@ -38,13 +44,19 @@ export const Dashboard: React.FC = () => {
           <h1 className="dash-title">Panel główny</h1>
           <p className="dash-subtitle">Twoje postępy w nauce angielskiego</p>
         </div>
-        {stats && (
-          <div className="streak-badge">
-            <span className="streak-fire">🔥</span>
-            <span className="streak-count">{stats.currentStreak}</span>
-            <span className="streak-label">dni z rzędu</span>
-          </div>
-        )}
+        <div className="header-right">
+          <button className="mentor-trigger-btn" onClick={() => setShowMentor(true)}>
+            <span className="btn-icon">🧠</span>
+            Centrum Mentora
+          </button>
+          {stats && (
+            <div className="streak-badge">
+              <span className="streak-fire">🔥</span>
+              <span className="streak-count">{stats.currentStreak}</span>
+              <span className="streak-label">dni z rzędu</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Current word widget */}
