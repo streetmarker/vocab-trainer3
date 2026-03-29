@@ -41,7 +41,20 @@ export const api = {
     difficulty: number;
     sentencePl?: string;
     sentenceEn?: string;
+    category?: string;
   }): Promise<number> => invoke("add_word", word),
+
+  updateWordCategory: (id: number, category: string): Promise<void> =>
+    invoke("update_word_category", { id, category }),
+
+  reclassifyWords: (): Promise<{ words: Word[], categories: string[] }> =>
+    invoke("reclassify_words"),
+
+  setActiveCategory: (category: string | null): Promise<void> =>
+    invoke("set_active_category", { category }),
+
+  getNextReviewWord: (categoryFilter: string | null): Promise<Word | null> =>
+    invoke("get_next_review_word", { categoryFilter }),
 
   deleteWord: (wordId: number): Promise<void> =>
     invoke("delete_word", { wordId }),
@@ -63,9 +76,6 @@ export const api = {
 
   setSchedulerPaused: (paused: boolean): Promise<void> =>
     invoke("set_scheduler_paused", { paused }),
-
-  seedSampleWords: (): Promise<number> =>
-    invoke("seed_sample_words"),
 
   getSettings: (): Promise<{
     exercisesPerDay: number;
@@ -143,8 +153,8 @@ export const api = {
     warnings: string[];
   }> => invoke("import_words_from_json", { json }),
 
-  getStrugglingWords: (limit: number): Promise<Word[]> =>
-    invoke("get_struggling_words", { limit }),
+  getStrugglingWords: (limit: number, categoryFilter?: string): Promise<Word[]> =>
+    invoke("get_struggling_words", { limit, categoryFilter }),
 
   getMentorTips: (): Promise<Record<number, import("../types").MentorTip>> =>
     invoke("get_mentor_tips"),
@@ -182,6 +192,7 @@ export interface WordWithProgress {
   tags:          string[];
   sentencePl?:   string;
   sentenceEn?:   string;
+  category?:     string;
   // SRS
   masteryLevel:  SrsMastery;
   repetitions:   number;

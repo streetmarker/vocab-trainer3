@@ -423,7 +423,6 @@ pub fn run() {
             commands::get_activity_grid,
             commands::get_scheduler_status,
             commands::set_scheduler_paused,
-            commands::seed_sample_words,
             commands::get_settings,
             commands::save_settings,
             commands::get_popup_exercise,
@@ -440,6 +439,10 @@ pub fn run() {
             commands::get_struggling_words,
             commands::get_mentor_tips,
             commands::save_mentor_tips,
+            commands::update_word_category,
+            commands::reclassify_words,
+            commands::set_active_category,
+            commands::get_next_review_word,
             tts::play_or_generate_tts
         ])
         .run(tauri::generate_context!())

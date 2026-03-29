@@ -13,6 +13,7 @@ import type { WordWithProgress, SrsOverview } from "../../hooks/useTauri";
 import { DIFFICULTY_LABELS, DIFFICULTY_COLORS, PART_OF_SPEECH_LABELS } from "../../types";
 import { api } from "../../hooks/useTauri";
 import { ImportWords } from "../ImportWords/ImportWords";
+import { CategorizationAgent, AgentStatus } from "../../utils/CategorizationAgent";
 import { SrsToday } from "../SrsPanel/SrsToday";
 import { SrsGroupHeader } from "../SrsPanel/SrsGroupHeader";
 import { SrsBadge } from "../SrsPanel/SrsBadge";
@@ -31,28 +32,28 @@ interface WordFormData {
   examples: string; synonyms: string; antonyms: string;
   tags: string; difficulty: number;
   sentencePl: string; sentenceEn: string;
+  category: string;
 }
 const emptyForm: WordFormData = {
   term:"",definition:"",definitionPl:"",partOfSpeech:"noun",phonetic:"",
   examples:"",synonyms:"",antonyms:"",tags:"",difficulty:2,
-  sentencePl:"",sentenceEn:"",
+  sentencePl:"",sentenceEn:"",category:"bez kategorii",
 };
 
-type ViewMode = "flat" | "grouped";
+type ViewMode = "flat" | "grouped" | "category";
 
-export const VocabManager: React.FC = () => {
+export const VocabManager: React.FC<{ activeCategory: string }> = ({ activeCategory }) => {
   const [overview, setOverview]   = useState<SrsOverview | null>(null);
   const [srsLoading, setSrsLoading] = useState(true);
   const [search, setSearch]       = useState("");
   const [viewMode, setViewMode]   = useState<ViewMode>("grouped");
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(
-    () => Object.fromEntries(SRS_GROUPS.map(g => [g.id, true]))
-  );
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [showForm, setShowForm]   = useState(false);
   const [form, setForm]           = useState<WordFormData>(emptyForm);
   const [saving, setSaving]       = useState(false);
   const [error, setError]         = useState("");
   const [seeding, setSeeding]     = useState(false);
+  const [agentStatus, setAgentStatus] = useState<AgentStatus | null>(null);
 
   const loadData = async () => {
     setSrsLoading(true);
@@ -64,11 +65,20 @@ export const VocabManager: React.FC = () => {
     }
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { 
+    loadData(); 
+    const agent = CategorizationAgent.getInstance();
+    agent.setStatusListener(setAgentStatus);
+  }, []);
 
   const words: WordWithProgress[] = overview?.words ?? [];
 
-  const filtered = words.filter(w =>
+  // Filtrowanie najpierw po aktywnej kategorii z sidebara, potem po wyszukiwarce
+  const categoryFiltered = words.filter(w =>
+    activeCategory === "Wszystkie" || w.category === activeCategory
+  );
+
+  const filtered = categoryFiltered.filter(w =>
     w.term.toLowerCase().includes(search.toLowerCase()) ||
     w.definition.toLowerCase().includes(search.toLowerCase()) ||
     (w.definitionPl ?? "").toLowerCase().includes(search.toLowerCase()) ||
@@ -96,8 +106,10 @@ export const VocabManager: React.FC = () => {
         difficulty: form.difficulty,
         sentencePl: form.sentencePl.trim() || undefined,
         sentenceEn: form.sentenceEn.trim() || undefined,
+        category: form.category.trim() || "bez kategorii",
       });
       setForm(emptyForm); setShowForm(false); await loadData();
+      window.dispatchEvent(new CustomEvent("refresh-categories"));
     } catch (e: any) { setError(e.toString()); }
     finally { setSaving(false); }
   };
@@ -107,11 +119,11 @@ export const VocabManager: React.FC = () => {
     await api.deleteWord(id); await loadData();
   };
 
-  const handleSeed = async () => {
-    setSeeding(true);
-    const count = await api.seedSampleWords();
-    await loadData(); setSeeding(false);
-    alert(`Dodano ${count} przykładowych słów!`);
+  const handleReclassify = async () => {
+    const agent = CategorizationAgent.getInstance();
+    await agent.run();
+    await loadData();
+    window.dispatchEvent(new CustomEvent("refresh-categories"));
   };
 
   return (
@@ -152,6 +164,12 @@ export const VocabManager: React.FC = () => {
               ≡ Grupy
             </button>
             <button
+              className={`vm-view-btn ${viewMode === "category" ? "vm-view-btn--active" : ""}`}
+              onClick={() => setViewMode("category")} title="Grupuj według kategorii"
+            >
+              📁 Kategorie
+            </button>
+            <button
               className={`vm-view-btn ${viewMode === "flat" ? "vm-view-btn--active" : ""}`}
               onClick={() => setViewMode("flat")} title="Lista płaska"
             >
@@ -159,8 +177,8 @@ export const VocabManager: React.FC = () => {
             </button>
           </div>
           <ImportWords onImportDone={loadData} />
-          <button className="btn-secondary" onClick={handleSeed} disabled={seeding}>
-            {seeding ? "Dodawanie…" : "Załaduj przykłady"}
+          <button className="btn-secondary" onClick={handleReclassify} disabled={saving}>
+            🤖 Kategoryzuj AI
           </button>
           <button className="btn-primary" onClick={() => setShowForm(true)}>
             + Dodaj słowo
@@ -176,6 +194,35 @@ export const VocabManager: React.FC = () => {
         {search && <span className="vm-filter-tag">filtr: „{search}"</span>}
       </div>
 
+      {/* ── Agent Progress Overlay ────────────────────────────────────── */}
+      {agentStatus?.isProcessing && (
+        <div className="agent-progress-overlay">
+          <div className="agent-card">
+            <div className="agent-header">
+              <span className="agent-bot-icon">🤖</span>
+              <div>
+                <div className="agent-name">Agent Kategoryzacji</div>
+                <div className="agent-status">Analizowanie słownictwa...</div>
+              </div>
+            </div>
+            <div className="agent-body">
+              <div className="agent-current-word">
+                Przetwarzanie: <strong>{agentStatus.currentWord}</strong>
+              </div>
+              <div className="agent-progress-bar-wrap">
+                <div 
+                  className="agent-progress-fill" 
+                  style={{ width: `${(agentStatus.progress / agentStatus.total) * 100}%` }} 
+                />
+              </div>
+              <div className="agent-count">
+                {agentStatus.progress} / {agentStatus.total} słów
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Word List ────────────────────────────────────────────── */}
       {filtered.length === 0 ? (
         <div className="vm-empty">
@@ -190,6 +237,28 @@ export const VocabManager: React.FC = () => {
       ) : viewMode === "flat" ? (
         <div className="vm-list">
           {filtered.map(w => <VocabRow key={w.id} word={w} onDelete={handleDelete} />)}
+        </div>
+      ) : viewMode === "category" ? (
+        <div className="vm-list">
+          {Array.from(new Set(filtered.map(w => w.category || "bez kategorii"))).sort().map(cat => {
+            const groupWords = filtered.filter(w => (w.category || "bez kategorii") === cat);
+            const isCollapsed = !!collapsed[cat];
+            return (
+              <div key={cat} className="srs-group">
+                <SrsGroupHeader
+                  icon="📁"
+                  label={cat}
+                  color="#a78bfa"
+                  words={groupWords}
+                  collapsed={isCollapsed}
+                  onToggle={() => toggleGroup(cat)}
+                />
+                {!isCollapsed && groupWords.map(w =>
+                  <VocabRow key={w.id} word={w} onDelete={handleDelete} />
+                )}
+              </div>
+            );
+          })}
         </div>
       ) : (
         // ── Grouped view ──────────────────────────────────────────
@@ -242,6 +311,11 @@ export const VocabManager: React.FC = () => {
                 <label>Wymowa (fonetyczna)</label>
                 <input value={form.phonetic} onChange={e => setForm({...form, phonetic:e.target.value})}
                   placeholder="/ɪˈfem.ər.əl/" />
+              </div>
+              <div className="form-field">
+                <label>Kategoria</label>
+                <input value={form.category} onChange={e => setForm({...form, category:e.target.value})}
+                  placeholder="np. IT, Business, Codzienne" />
               </div>
               <div className="form-field span-2">
                 <label>Definicja (angielski) *</label>
@@ -325,6 +399,7 @@ const VocabRow: React.FC<{
           <span className="vm-term">{word.term}</span>
           <span className="vm-pos">{PART_OF_SPEECH_LABELS[word.partOfSpeech as PartOfSpeech] ?? word.partOfSpeech}</span>
           {word.phonetic && <span className="vm-phonetic">{word.phonetic}</span>}
+          {/* {word.createdAt && <span className="vm-created-at">Dodano: {new Date(word.createdAt).toLocaleDateString()}</span>} */}
         </div>
         <div className="vm-row-center">
           <span className="vm-def-preview">{word.definition}</span>

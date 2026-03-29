@@ -34,7 +34,9 @@ const SCHEMA_EXAMPLE = `[
     "examples": ["Technology is ubiquitous in modern life."],
     "synonyms": ["omnipresent", "pervasive"],
     "antonyms": ["rare", "scarce"],
-    "tags": ["C1", "formal"]
+    "tags": ["C1", "formal"],
+    "category": "Codzienne",
+    "createdAt": "2026-03-29T12:00:00Z"
   }
 ]`;
 
@@ -44,6 +46,7 @@ const OPTIONAL_FIELDS = [
   `"difficulty" (1–5)`,
   `"zdaniePL"`, `"zdanieEN"`,
   `"examples" []`, `"synonyms" []`, `"antonyms" []`, `"tags" []`,
+  `"category"`, `"createdAt" (ISO 8601)`,
 ];
 
 export const ImportWords: React.FC<Props> = ({ onImportDone }) => {

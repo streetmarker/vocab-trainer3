@@ -14,6 +14,18 @@ use crate::learning::{LearningEngine, ProgressTracker, AnswerResult};
 use crate::learning::exercise_generator::Exercise;
 use crate::learning::scheduler::Scheduler;
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+pub const GLOBAL_CATEGORIES: &[&str] = &[
+    "IT", "biznes", "czasowniki frazowe", "osobowość", "uroda i pielęgnacja",
+    "wygląd zewnętrzny", "ubrania", "rodzina i związki", "sport i czas wolny",
+    "jedzenie i gotowanie", "samopoczucie", "zdrowie i choroby", "ciało i organy",
+    "polityka i społeczeństwo", "historia", "kultura i sztuka", "wojny i katastrofy",
+    "samochód", "podróżowanie", "praca", "finanse i biznes", "sprzedaż i marketing",
+    "prawo i przestępczość", "technologia", "nauka i badania", "edukacja",
+    "wyrażenia przyimkowe", "bez kategorii"
+];
+
 // ─── App State (dependency injection via Tauri) ───────────────────────────────
 
 pub struct AppState {
@@ -91,6 +103,7 @@ pub struct WordWithProgress {
     pub tags:           Vec<String>,
     pub sentence_pl:    Option<String>,
     pub sentence_en:    Option<String>,
+    pub category:       Option<String>,
     // SRS progress (None if word has never been reviewed)
     pub mastery_level:  String,
     pub repetitions:    i32,
@@ -161,6 +174,7 @@ pub async fn get_srs_overview(state: State<'_, AppState>) -> Result<SrsOverview,
             tags:           word.tags.clone(),
             sentence_pl:    word.sentence_pl.clone(),
             sentence_en:    word.sentence_en.clone(),
+            category:       word.category.clone(),
             mastery_level:  p.mastery_level.as_str().to_string(),
             repetitions:    p.repetitions,
             interval_days:  p.interval_days,
@@ -199,6 +213,7 @@ pub async fn add_word(
     difficulty: i32,
     sentence_pl: Option<String>,
     sentence_en: Option<String>,
+    category: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<i64, String> {
     let word = Word {
@@ -217,8 +232,43 @@ pub async fn add_word(
         is_active: true,
         sentence_pl,
         sentence_en,
+        category,
     };
     state.db.insert_word(&word).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn update_word_category(
+    id: i64,
+    category: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    state.db.update_word_category(id, category).map_err(|e| e.to_string())
+}
+
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReclassifyPayload {
+    pub words: Vec<Word>,
+    pub categories: Vec<String>,
+}
+
+#[tauri::command]
+pub async fn reclassify_words(state: State<'_, AppState>) -> Result<ReclassifyPayload, String> {
+    let all_words = state.db.get_all_words().map_err(|e| e.to_string())?;
+    
+    // Filtrujemy tylko te, które nie mają przypisanej kategorii
+    let words_to_reclassify: Vec<Word> = all_words
+        .into_iter()
+        .filter(|w| w.category.is_none() || w.category.as_deref() == Some("bez kategorii"))
+        .collect();
+
+    let categories: Vec<String> = GLOBAL_CATEGORIES.iter().map(|s| s.to_string()).collect();
+
+    Ok(ReclassifyPayload {
+        words: words_to_reclassify,
+        categories,
+    })
 }
 
 #[tauri::command]
@@ -284,115 +334,95 @@ pub async fn set_scheduler_paused(
     Ok(())
 }
 
-// ─── Seed Data Command ────────────────────────────────────────────────────────
-
 #[tauri::command]
-pub async fn seed_sample_words(state: State<'_, AppState>) -> Result<i32, String> {
-    let words = sample_words();
-    let mut count = 0;
-    for word in words {
-        if state.db.insert_word(&word).is_ok() {
-            count += 1;
-        }
-    }
-    Ok(count)
+pub async fn set_active_category(
+    category: Option<String>,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    state.scheduler.set_active_category(category);
+    Ok(())
 }
 
-fn sample_words() -> Vec<Word> {
-    let now = chrono::Utc::now();
-    vec![
-        Word {
-            id: 0, term: "ephemeral".to_string(),
-            definition: "Lasting for a very short time; transitory".to_string(),
-            definition_pl: Some("Krótkotrwały, nietrwały, przemijający — istniejący tylko przez chwilę".to_string()),
-            part_of_speech: "adjective".to_string(),
-            phonetic: Some("/ɪˈfem.ər.əl/".to_string()),
-            examples: vec!["The ephemeral beauty of cherry blossoms makes them all the more precious.".to_string()],
-            synonyms: vec!["transient".to_string(), "fleeting".to_string(), "momentary".to_string()],
-            antonyms: vec!["permanent".to_string(), "enduring".to_string()],
-            tags: vec!["common".to_string()], difficulty: 3, created_at: now, is_active: true, sentence_pl: None, sentence_en: None,
-        },
-        Word {
-            id: 0, term: "ubiquitous".to_string(),
-            definition: "Present, appearing, or found everywhere".to_string(),
-            definition_pl: Some("Wszechobecny, spotykany wszędzie — coś, co jest w każdym miejscu jednocześnie".to_string()),
-            part_of_speech: "adjective".to_string(),
-            phonetic: Some("/juːˈbɪk.wɪ.təs/".to_string()),
-            examples: vec!["Smartphones have become ubiquitous in modern society.".to_string()],
-            synonyms: vec!["omnipresent".to_string(), "pervasive".to_string()],
-            antonyms: vec!["rare".to_string(), "scarce".to_string()],
-            tags: vec!["common".to_string()], difficulty: 3, created_at: now, is_active: true, sentence_pl: None, sentence_en: None,
-        },
-        Word {
-            id: 0, term: "serendipity".to_string(),
-            definition: "The occurrence of fortunate events by accident or chance".to_string(),
-            definition_pl: Some("Szczęśliwy przypadek — odkrycie czegoś wartościowego przez zrządzenie losu, bez szukania".to_string()),
-            part_of_speech: "noun".to_string(),
-            phonetic: Some("/ˌser.ənˈdɪp.ɪ.ti/".to_string()),
-            examples: vec!["It was pure serendipity that they met at the coffee shop that day.".to_string()],
-            synonyms: vec!["luck".to_string(), "fortune".to_string(), "chance".to_string()],
-            antonyms: vec!["misfortune".to_string()],
-            tags: vec!["popular".to_string()], difficulty: 2, created_at: now, is_active: true, sentence_pl: None, sentence_en: None,
-        },
-        Word {
-            id: 0, term: "perspicacious".to_string(),
-            definition: "Having a ready insight into things; shrewd".to_string(),
-            definition_pl: Some("Przenikliwy, bystrzy — ktoś, kto szybko rozumie i trafnie ocenia sytuacje".to_string()),
-            part_of_speech: "adjective".to_string(),
-            phonetic: Some("/ˌpɜːr.spɪˈkeɪ.ʃəs/".to_string()),
-            examples: vec!["The perspicacious investor saw the company's potential before anyone else.".to_string()],
-            synonyms: vec!["astute".to_string(), "shrewd".to_string(), "perceptive".to_string()],
-            antonyms: vec!["obtuse".to_string(), "dim-witted".to_string()],
-            tags: vec!["advanced".to_string()], difficulty: 5, created_at: now, is_active: true, sentence_pl: None, sentence_en: None,
-        },
-        Word {
-            id: 0, term: "mellifluous".to_string(),
-            definition: "Sweet or musical; pleasant to hear".to_string(),
-            definition_pl: Some("Melodyjny, słodki w brzmieniu — dźwięk lub głos, który przyjemnie brzmi dla uszu".to_string()),
-            part_of_speech: "adjective".to_string(),
-            phonetic: Some("/məˈlɪf.lu.əs/".to_string()),
-            examples: vec!["Her mellifluous voice filled the concert hall with warmth.".to_string()],
-            synonyms: vec!["dulcet".to_string(), "harmonious".to_string(), "melodious".to_string()],
-            antonyms: vec!["harsh".to_string(), "discordant".to_string()],
-            tags: vec!["literary".to_string()], difficulty: 4, created_at: now, is_active: true, sentence_pl: None, sentence_en: None,
-        },
-        Word {
-            id: 0, term: "pragmatic".to_string(),
-            definition: "Dealing with things sensibly and realistically".to_string(),
-            definition_pl: Some("Pragmatyczny, praktyczny — skupiony na tym, co działa w rzeczywistości, bez niepotrzebnego idealizmu".to_string()),
-            part_of_speech: "adjective".to_string(),
-            phonetic: Some("/præɡˈmæt.ɪk/".to_string()),
-            examples: vec!["She took a pragmatic approach to solving the budget crisis.".to_string()],
-            synonyms: vec!["practical".to_string(), "sensible".to_string(), "realistic".to_string()],
-            antonyms: vec!["idealistic".to_string(), "impractical".to_string()],
-            tags: vec!["common".to_string()], difficulty: 2, created_at: now, is_active: true, sentence_pl: None, sentence_en: None,
-        },
-        Word {
-            id: 0, term: "inimical".to_string(),
-            definition: "Tending to obstruct or harm; hostile or unfriendly".to_string(),
-            definition_pl: Some("Wrogi, szkodliwy — coś lub ktoś, kto działa przeciwko czemuś lub komuś, utrudniając lub niszcząc".to_string()),
-            part_of_speech: "adjective".to_string(),
-            phonetic: Some("/ɪˈnɪm.ɪ.kəl/".to_string()),
-            examples: vec!["Such policies are inimical to economic growth.".to_string()],
-            synonyms: vec!["hostile".to_string(), "antagonistic".to_string(), "adverse".to_string()],
-            antonyms: vec!["friendly".to_string(), "beneficial".to_string()],
-            tags: vec!["formal".to_string()], difficulty: 4, created_at: now, is_active: true, sentence_pl: None, sentence_en: None,
-        },
-        Word {
-            id: 0, term: "loquacious".to_string(),
-            definition: "Tending to talk a great deal; talkative".to_string(),
-            definition_pl: Some("Gadatliwy, wielomówny — osoba, która dużo i chętnie mówi, często za dużo".to_string()),
-            part_of_speech: "adjective".to_string(),
-            phonetic: Some("/ləʊˈkweɪ.ʃəs/".to_string()),
-            examples: vec!["The loquacious professor often ran over time with his lectures.".to_string()],
-            synonyms: vec!["talkative".to_string(), "garrulous".to_string(), "voluble".to_string()],
-            antonyms: vec!["taciturn".to_string(), "reticent".to_string()],
-            tags: vec!["character".to_string()], difficulty: 3, created_at: now, is_active: true, sentence_pl: None, sentence_en: None,
-        },
-    ]
-}
+// #[tauri::command]
+// pub async fn repair_json_data(state: State<'_, AppState>) -> Result<String, String> {
+//     // Zakładamy, że skrypt jest w głównym katalogu projektu.
+//     // Jeśli jest inaczej, ścieżkę trzeba będzie dostosować.
+//     let script_path = "../repair_fiszki.py"; 
+    
+//     // Sprawdzamy, czy skrypt istnieje
+//     if !std::path::Path::new(script_path).exists() {
+//         return Err(format!("Skrypt {} nie został znaleziony. Upewnij się, że jest w głównym katalogu projektu.", script_path));
+//     }
 
-// ─── Settings Commands ────────────────────────────────────────────────────────
+//     // Uruchamiamy skrypt Pythona
+//     // Ważne: Używamy `powershell.exe -NoProfile -Command` dla spójności z innymi komendami.
+//     // Upewnij się, że Python jest dostępny w ścieżce systemowej lub podaj pełną ścieżkę do interpretera.
+//     // Dodajemy PAGER=cat, żeby komenda nie czekała na interakcję, jeśli coś by się wyświetliło
+//     let command = format!("$env:PAGER='cat'; python \"{}\"", script_path);
+
+//     let output = run_shell_command(
+//         command,
+//         Some("Uruchamiam skrypt naprawy danych JSON...".to_string()),
+//         None, // Domyślnie bieżący katalog
+//         false,
+//     ).await;
+
+//     // Sprawdzamy wyjście i kod zakończenia
+//     if output.exit_code.is_some() && output.exit_code != Some(0) {
+//         return Err(format!("Skrypt naprawy zakończył się błędem (kod {}):\n{}", output.exit_code.unwrap(), output.output));
+//     } else if !output.error.is_none() {
+//         return Err(format!("Błąd wykonania skryptu: {}\n{}", output.error.unwrap(), output.output));
+//     } else if output.output.is_empty() || output.output.contains("Nie znaleziono pliku") {
+//         // Bardziej specyficzny błąd dla nieznalezienia pliku JSON
+//         return Err(format!("Błąd wykonania skryptu: Nie znaleziono pliku {}. Sprawdź ścieżkę i nazwę pliku.", FILE_PATH));
+//     } else {
+//         log::info!("Skrypt naprawy zakończony pomyślnie. Wynik: {}", output.output);
+//         // Można by tu bardziej szczegółowo analizować output, ale na razie zakładamy sukces jeśli brak błędów
+//         return Ok(format!("Naprawa zakończona. Wynik:\n{}", output.output));
+//     Ok(())
+//     }
+
+    // #[tauri::command]
+    // pub async fn repair_json_data(state: State<'_, AppState>) -> Result<String, String> {
+    // // Zakładamy, że skrypt jest w głównym katalogu projektu.
+    // // Jeśli jest inaczej, ścieżkę trzeba będzie dostosować.
+    // let script_path = "../repair_fiszki.py"; 
+
+    // // Sprawdzamy, czy skrypt istnieje
+    // if !std::path::Path::new(script_path).exists() {
+    //     return Err(format!("Skrypt {} nie został znaleziony. Upewnij się, że jest w głównym katalogu projektu.", script_path));
+    // }
+
+    // // Uruchamiamy skrypt Pythona
+    // // Ważne: Używamy `powershell.exe -NoProfile -Command` dla spójności z innymi komendami.
+    // // Upewnij się, że Python jest dostępny w ścieżce systemowej lub podaj pełną ścieżkę do interpretera.
+    // // Dodajemy PAGER=cat, żeby komenda nie czekała na interakcję, jeśli coś by się wyświetliło
+    // let command = format!("$env:PAGER='cat'; python \"{}\"", script_path);
+
+    // let output = run_shell_command(
+    //     command,
+    //     Some("Uruchamiam skrypt naprawy danych JSON...".to_string()),
+    //     None, // Domyślnie bieżący katalog
+    //     false,
+    // ).await;
+
+    // // Sprawdzamy wyjście i kod zakończenia
+    // if output.exit_code.is_some() && output.exit_code != Some(0) {
+    //     return Err(format!("Skrypt naprawy zakończył się błędem (kod {}):\n{}", output.exit_code.unwrap(), output.output));
+    // } else if !output.error.is_none() {
+    //     return Err(format!("Błąd wykonania skryptu: {}\n{}", output.error.unwrap(), output.output));
+    // } else if output.output.is_empty() || output.output.contains("Nie znaleziono pliku") {
+    //     // Bardziej specyficzny błąd dla nieznalezienia pliku JSON
+    //     return Err(format!("Błąd wykonania skryptu: Nie znaleziono pliku {}. Sprawdź ścieżkę i nazwę pliku.", FILE_PATH));
+    // } else {
+    //     log::info!("Skrypt naprawy zakończony pomyślnie. Wynik: {}", output.output);
+    //     // Można by tu bardziej szczegółowo analizować output, ale na razie zakładamy sukces jeśli brak błędów
+    //     return Ok(format!("Naprawa zakończona. Wynik:\n{}", output.output));
+    // }
+    // }
+
+    // ─── Settings Commands ────────────────────────────────────────────────────────
+
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -668,7 +698,7 @@ pub async fn srs_answer(
 
     // ── Next card ─────────────────────────────────────────────────────────────
     let next = state.db
-        .get_next_flashcard_word(Some(word_id))
+        .get_next_flashcard_word(Some(word_id), None)
         .map_err(|e| e.to_string())?;
 
     let (next_word_id, next_term_pl, next_term_en, next_part_of_speech,
@@ -756,6 +786,8 @@ pub struct ImportedWord {
     #[serde(default)] pub difficulty:      Option<i32>,
     #[serde(default, rename = "zdaniePL")] pub sentence_pl: Option<String>,
     #[serde(default, rename = "zdanieEN")] pub sentence_en: Option<String>,
+    #[serde(default)] pub category:       Option<String>,
+    #[serde(default)] pub created_at:     Option<String>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -805,6 +837,11 @@ pub async fn import_words_from_json(
             .map(|d| d.clamp(1, 5))
             .unwrap_or(2);
 
+        let created_at = item.created_at
+            .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
+            .map(|dt| dt.with_timezone(&chrono::Utc))
+            .unwrap_or_else(chrono::Utc::now);
+
         let word = crate::db::Word {
             id: 0,
             term,
@@ -817,10 +854,11 @@ pub async fn import_words_from_json(
             antonyms:       item.antonyms,
             tags:           item.tags,
             difficulty,
-            created_at:     chrono::Utc::now(),
+            created_at,
             is_active:      true,
             sentence_pl:    item.sentence_pl,
             sentence_en:    item.sentence_en,
+            category:       item.category,
         };
 
         // ── Insert; detect UNIQUE constraint violation = duplicate ────────────
@@ -866,9 +904,21 @@ pub async fn initialize_autostart(app: tauri::AppHandle) -> Result<(), String> {
         #[tauri::command]
         pub async fn get_struggling_words(
         limit: i32,
+        category_filter: Option<String>,
         state: State<'_, AppState>,
         ) -> Result<Vec<Word>, String> {
-        state.db.get_struggling_words(limit).map_err(|e| e.to_string())
+        state.db.get_struggling_words(limit, category_filter).map_err(|e| e.to_string())
+        }
+
+        #[tauri::command]
+        pub async fn get_next_review_word(
+            category_filter: Option<String>,
+            state: State<'_, AppState>,
+        ) -> Result<Option<Word>, String> {
+            match state.db.get_next_flashcard_word(None, category_filter).map_err(|e| e.to_string())? {
+                Some((word, _)) => Ok(Some(word)),
+                None => Ok(None),
+            }
         }
 
         #[tauri::command]
@@ -894,3 +944,4 @@ pub async fn initialize_autostart(app: tauri::AppHandle) -> Result<(), String> {
         std::fs::write(path, content).map_err(|e| e.to_string())?;
         Ok(())
         }
+    

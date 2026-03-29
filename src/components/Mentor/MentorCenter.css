@@ -136,11 +136,38 @@
   opacity: 1;
 }
 
+.mentor-word-card.active-cat-card {
+  border-color: var(--accent);
+  background: rgba(108, 99, 255, 0.05);
+}
+
+.mentor-word-card.active-cat-card::before {
+  opacity: 1;
+}
+
 .mwc-term {
   font-size: 22px;
   font-weight: 800;
   color: white;
   letter-spacing: -0.02em;
+}
+
+.mwc-cat-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  width: fit-content;
+}
+
+.mwc-cat-badge.active {
+  background: var(--accent);
+  color: white;
 }
 
 .mwc-reason {

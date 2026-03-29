@@ -26,6 +26,19 @@ export interface Word {
   isActive: boolean;
   sentencePl?: string;         // Example sentence in Polish — word bolded on flashcard front
   sentenceEn?: string;         // Example sentence in English — word bolded on flashcard back
+  category?: string;
+}
+
+export interface WordWithProgress extends Word {
+  masteryLevel: MasteryLevel;
+  repetitions: number;
+  intervalDays: number;
+  easeFactor: number;
+  streak: number;
+  totalReviews: number;
+  nextReviewAt?: string;
+  lastReviewAt?: string;
+  reviewStatus: "never" | "overdue" | "today" | "future";
 }
 
 export interface WordProgress {

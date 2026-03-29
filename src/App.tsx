@@ -1,5 +1,5 @@
 // src/App.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { Dashboard } from "./components/Dashboard/Dashboard";
 import { VocabManager } from "./components/VocabManager/VocabManager";
@@ -10,7 +10,20 @@ import "./styles/global.css";
 
 export default function App() {
   const [route, setRoute] = useState<AppRoute>("dashboard");
+  const [activeCategory, setActiveCategory] = useState<string>("Wszystkie");
   
+  useEffect(() => {
+    // Pobierz aktywną kategorię z localStorage przy starcie
+    const saved = localStorage.getItem("active_category");
+    if (saved) setActiveCategory(saved);
+  }, []);
+
+  const handleCategoryChange = (cat: string) => {
+    setActiveCategory(cat);
+    localStorage.setItem("active_category", cat);
+    api.setActiveCategory(cat === "Wszystkie" ? null : cat).catch(console.error);
+  };
+
   useEffect(() => {
     // Wywołujemy inicjalizację autostartu raz przy starcie aplikacji
     import('@tauri-apps/api/core').then(({ invoke }) => {
@@ -57,18 +70,62 @@ export default function App() {
           ))}
         </div>
 
+        <CategorySelector active={activeCategory} onChange={handleCategoryChange} />
+
         <SchedulerStatus />
       </nav>
 
       {/* ── Main Content ──────────────────────────────────────────────── */}
       <main className="main-content">
-        {route === "dashboard" && <Dashboard />}
-        {route === "vocab" && <VocabManager />}
+        {route === "dashboard" && <Dashboard activeCategory={activeCategory} />}
+        {route === "vocab" && <VocabManager activeCategory={activeCategory} />}
         {route === "settings" && <SettingsPage />}
       </main>
     </div>
   );
 }
+
+// ─── Category Selector ────────────────────────────────────────────────────────
+
+const CategorySelector: React.FC<{ active: string; onChange: (c: string) => void }> = ({ active, onChange }) => {
+  const [categories, setCategories] = useState<string[]>(["Wszystkie"]);
+
+  const refresh = useCallback(() => {
+    // Pobierz unikalne kategorie z bazy
+    api.getSrsOverview().then(data => {
+      const cats = new Set<string>();
+      cats.add("Wszystkie");
+      data.words.forEach(w => {
+        if (w.category) cats.add(w.category);
+      });
+      setCategories(Array.from(cats).sort());
+    }).catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    refresh();
+    window.addEventListener("refresh-categories", refresh);
+    return () => window.removeEventListener("refresh-categories", refresh);
+  }, [refresh]);
+
+  return (
+    <div className="category-sidebar-section">
+      <div className="cat-section-label">Źródło danych</div>
+      <div className="cat-list">
+        {categories.map(cat => (
+          <button 
+            key={cat} 
+            className={`cat-btn ${active === cat ? "active" : ""}`}
+            onClick={() => onChange(cat)}
+          >
+            <span className="cat-dot" style={{ background: active === cat ? "var(--accent)" : "transparent" }} />
+            {cat}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 // ─── Scheduler Status Widget ──────────────────────────────────────────────────
 

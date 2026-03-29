@@ -6,7 +6,7 @@ import { api } from "../../hooks/useTauri";
 import { MentorCenter } from "../Mentor/MentorCenter";
 import "./Dashboard.css";
 
-export const Dashboard: React.FC = () => {
+export const Dashboard: React.FC<{ activeCategory: string }> = ({ activeCategory }) => {
   const [stats, setStats]           = useState<OverallStats | null>(null);
   const [activity, setActivity]     = useState<ActivityDay[]>([]);
   const [words, setWords]           = useState<Word[]>([]);
@@ -32,8 +32,12 @@ export const Dashboard: React.FC = () => {
   );
 
   if (showMentor) {
-    return <MentorCenter onClose={() => setShowMentor(false)} />;
+    return <MentorCenter onClose={() => setShowMentor(false)} activeCategory={activeCategory} />;
   }
+
+  const filteredWords = words.filter(w => 
+    activeCategory === "Wszystkie" || w.category === activeCategory
+  );
 
   return (
     <div className="dashboard">
@@ -90,14 +94,16 @@ export const Dashboard: React.FC = () => {
 
       {/* Word list */}
       <div className="dash-section">
-        <h2 className="section-title">Twoje słowa ({words.length})</h2>
-        {words.length === 0 ? (
+        <h2 className="section-title">
+          {activeCategory === "Wszystkie" ? "Twoje słowa" : `Twoje słowa (${activeCategory})`} ({filteredWords.length})
+        </h2>
+        {filteredWords.length === 0 ? (
           <div className="empty-chart">
-            Brak słów. Przejdź do <strong>Słownictwo</strong> aby dodać pierwsze słowa lub załadować przykładowe.
+            Brak słów w tej kategorii.
           </div>
         ) : (
           <div className="word-grid">
-            {words.map((w) => (
+            {filteredWords.map((w) => (
               <WordCard
                 key={w.id}
                 word={w}

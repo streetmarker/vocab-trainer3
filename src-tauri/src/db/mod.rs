@@ -25,6 +25,7 @@ pub struct Word {
     pub is_active: bool,
     pub sentence_pl: Option<String>,     // Example sentence in Polish (bold term on flashcard front)
     pub sentence_en: Option<String>,     // Example sentence in English (bold term on flashcard back)
+    pub category: Option<String>,        // Word category
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -169,6 +170,7 @@ impl Database {
         let _ = conn.execute_batch("ALTER TABLE word ADD COLUMN definition_pl TEXT;");
         let _ = conn.execute_batch("ALTER TABLE word ADD COLUMN sentence_pl TEXT;");
         let _ = conn.execute_batch("ALTER TABLE word ADD COLUMN sentence_en TEXT;");
+        let _ = conn.execute_batch("ALTER TABLE word ADD COLUMN category TEXT DEFAULT 'bez kategorii';");
         let _ = conn.execute_batch("ALTER TABLE word_progress ADD COLUMN iterations INTEGER NOT NULL DEFAULT 0;");
         Ok(())
     }
@@ -180,8 +182,8 @@ impl Database {
         conn.execute(
             "INSERT INTO word (term, definition, definition_pl, part_of_speech, phonetic,
              examples, synonyms, antonyms, tags, difficulty, created_at, is_active,
-             sentence_pl, sentence_en)
-             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14)",
+             sentence_pl, sentence_en, category)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15)",
             params![
                 word.term, word.definition, word.definition_pl,
                 word.part_of_speech, word.phonetic,
@@ -191,6 +193,7 @@ impl Database {
                 serde_json::to_string(&word.tags)?,
                 word.difficulty, word.created_at.to_rfc3339(), word.is_active,
                 word.sentence_pl, word.sentence_en,
+                word.category.clone().unwrap_or_else(|| "bez kategorii".to_string()),
             ],
         )?;
         Ok(conn.last_insert_rowid())
@@ -201,7 +204,7 @@ impl Database {
         let mut stmt = conn.prepare(
             "SELECT id, term, definition, definition_pl, part_of_speech, phonetic,
              examples, synonyms, antonyms, tags, difficulty, created_at, is_active,
-             sentence_pl, sentence_en
+             sentence_pl, sentence_en, category
              FROM word WHERE is_active = 1 ORDER BY term",
         )?;
         let words = stmt.query_map([], row_to_word)?.collect::<Result<Vec<_>, _>>()?;
@@ -213,7 +216,7 @@ impl Database {
         let mut stmt = conn.prepare(
             "SELECT id, term, definition, definition_pl, part_of_speech, phonetic,
              examples, synonyms, antonyms, tags, difficulty, created_at, is_active,
-             sentence_pl, sentence_en
+             sentence_pl, sentence_en, category
              FROM word WHERE id = ?1",
         )?;
         let mut rows = stmt.query_map([id], row_to_word)?;
@@ -225,7 +228,7 @@ impl Database {
         let mut stmt = conn.prepare(
             "SELECT id, term, definition, definition_pl, part_of_speech, phonetic,
              examples, synonyms, antonyms, tags, difficulty, created_at, is_active,
-             sentence_pl, sentence_en
+             sentence_pl, sentence_en, category
              FROM word WHERE id != ?1 AND is_active = 1
              ORDER BY RANDOM() LIMIT ?2",
         )?;
@@ -249,23 +252,32 @@ impl Database {
         Ok(deleted)
     }
 
-    pub fn get_struggling_words(&self, limit: i32) -> Result<Vec<Word>> {
+    pub fn get_struggling_words(&self, limit: i32, category_filter: Option<String>) -> Result<Vec<Word>> {
         let conn = self.conn.lock();
         let mut stmt = conn.prepare(
             "SELECT w.id, w.term, w.definition, w.definition_pl, w.part_of_speech, w.phonetic,
              w.examples, w.synonyms, w.antonyms, w.tags, w.difficulty, w.created_at, w.is_active,
-             w.sentence_pl, w.sentence_en
+             w.sentence_pl, w.sentence_en, w.category
              FROM word w
              JOIN exercise_history h ON w.id = h.word_id
-             WHERE w.is_active = 1
+             WHERE w.is_active = 1 AND (w.category = ?2 OR ?2 IS NULL OR ?2 = 'Wszystkie')
              GROUP BY w.id
              HAVING COUNT(CASE WHEN h.was_correct = 0 THEN 1 END) >= 1
                 OR AVG(h.response_time_ms) > 3000
              ORDER BY COUNT(CASE WHEN h.was_correct = 0 THEN 1 END) DESC, AVG(h.response_time_ms) DESC
              LIMIT ?1",
         )?;
-        let words = stmt.query_map([limit], row_to_word)?.collect::<Result<Vec<_>, _>>()?;
+        let words = stmt.query_map(params![limit, category_filter], row_to_word)?.collect::<Result<Vec<_>, _>>()?;
         Ok(words)
+    }
+
+    pub fn update_word_category(&self, id: i64, category: String) -> Result<()> {
+        let conn = self.conn.lock();
+        conn.execute(
+            "UPDATE word SET category = ?1 WHERE id = ?2",
+            params![category, id],
+        )?;
+        Ok(())
     }
 
     // ─── Progress Queries ──────────────────────────────────────────────────
@@ -331,7 +343,7 @@ impl Database {
         let mut stmt = conn.prepare(
             "SELECT w.id, w.term, w.definition, w.definition_pl, w.part_of_speech, w.phonetic,
              w.examples, w.synonyms, w.antonyms, w.tags, w.difficulty, w.created_at, w.is_active,
-             w.sentence_pl, w.sentence_en,
+             w.sentence_pl, w.sentence_en, w.category,
              p.id, p.word_id, p.easiness_factor, p.interval_days, p.repetitions, p.iterations,
              p.next_review_at, p.last_review_at, p.total_reviews, p.correct_reviews,
              p.streak, p.introduced_at, p.session_reviews, p.next_session_review_at, p.mastery_level
@@ -354,18 +366,19 @@ impl Database {
                 is_active: row.get(12)?,
                 sentence_pl: row.get(13)?,
                 sentence_en: row.get(14)?,
+                category: row.get(15)?,
             };
             let progress = WordProgress {
-                id: row.get(15)?, word_id: row.get(16)?,
-                easiness_factor: row.get(17)?, interval_days: row.get(18)?,
-                repetitions: row.get(19)?, iterations: row.get(20)?,
-                next_review_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(21)?).unwrap().with_timezone(&Utc),
-                last_review_at: row.get::<_, Option<String>>(22)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
-                total_reviews: row.get(23)?, correct_reviews: row.get(24)?, streak: row.get(25)?,
-                introduced_at: row.get::<_, Option<String>>(26)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
-                session_reviews: row.get(27)?,
-                next_session_review_at: row.get::<_, Option<String>>(28)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
-                mastery_level: MasteryLevel::from_str(&row.get::<_, String>(29).unwrap_or_default()),
+                id: row.get(16)?, word_id: row.get(17)?,
+                easiness_factor: row.get(18)?, interval_days: row.get(19)?,
+                repetitions: row.get(20)?, iterations: row.get(21)?,
+                next_review_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(22)?).unwrap().with_timezone(&Utc),
+                last_review_at: row.get::<_, Option<String>>(23)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
+                total_reviews: row.get(24)?, correct_reviews: row.get(25)?, streak: row.get(26)?,
+                introduced_at: row.get::<_, Option<String>>(27)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
+                session_reviews: row.get(28)?,
+                next_session_review_at: row.get::<_, Option<String>>(29)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|d| d.with_timezone(&Utc)),
+                mastery_level: MasteryLevel::from_str(&row.get::<_, String>(30).unwrap_or_default()),
             };
             Ok((word, progress))
         })?.collect::<Result<Vec<_>, _>>()?;
@@ -447,7 +460,7 @@ impl Database {
     }
 
     pub fn get_session_word(&self) -> Result<Option<(Word, WordProgress)>> {
-        self.get_next_flashcard_word(None)
+        self.get_next_flashcard_word(None, None)
     }
 
     /// Select the next word for a flashcard session using a weighted scoring algorithm.
@@ -457,7 +470,7 @@ impl Database {
     /// | Component                        | Value        | Rationale                          |
     /// |----------------------------------|--------------|------------------------------------|
     /// | mastery = new (no progress yet)  | +40          | New words introduced first         |
-    /// | mastery = learning               | +30          | "Do ćwiczenia" words boosted       |
+    /// | mastery = learning               | +30          | \"Do ćwiczenia\" words boosted       |
     /// | mastery = reviewing              | +10          | Active review                      |
     /// | mastery = mastered               |  +0          | Lowest priority                    |
     /// | SM-2 review overdue              | +25          | Long overdue gets strong boost     |
@@ -470,7 +483,8 @@ impl Database {
     /// # Parameters
     /// - `exclude_id`: word_id just answered — excluded so the same card never
     ///   appears twice in a row (unless it's the only word in the DB)
-    pub fn get_next_flashcard_word(&self, exclude_id: Option<i64>) -> Result<Option<(Word, WordProgress)>> {
+    /// - `category_filter`: filter by category
+    pub fn get_next_flashcard_word(&self, exclude_id: Option<i64>, category_filter: Option<String>) -> Result<Option<(Word, WordProgress)>> {
         let conn = self.conn.lock();
         let now  = Utc::now().to_rfc3339();
         let excl = exclude_id.unwrap_or(-1); // -1 matches nothing (no word has id=-1)
@@ -481,6 +495,7 @@ impl Database {
              LEFT JOIN word_progress p ON w.id = p.word_id
              WHERE w.is_active = 1
                AND w.id != ?2
+               AND (w.category = ?3 OR ?3 IS NULL OR ?3 = 'Wszystkie')
                AND (
                  p.next_review_at IS NULL 
                  OR p.next_review_at <= ?1
@@ -494,7 +509,7 @@ impl Database {
                -- 3. Mała losowość dla słów o tym samym priorytecie
                RANDOM()
              LIMIT 1",
-            rusqlite::params![now, excl],
+            rusqlite::params![now, excl, category_filter],
             |r| r.get::<_, i64>(0),
         );
 
@@ -533,6 +548,7 @@ fn row_to_word(row: &rusqlite::Row) -> rusqlite::Result<Word> {
         is_active: row.get(12)?,
         sentence_pl: row.get(13)?,
         sentence_en: row.get(14)?,
+        category: row.get(15)?,
     })
 }
 
@@ -569,7 +585,8 @@ CREATE TABLE IF NOT EXISTS word (
     created_at      TEXT NOT NULL,
     is_active       INTEGER NOT NULL DEFAULT 1,
     sentence_pl     TEXT,
-    sentence_en     TEXT
+    sentence_en     TEXT,
+    category        TEXT DEFAULT 'bez kategorii'
 );
 
 CREATE TABLE IF NOT EXISTS word_progress (

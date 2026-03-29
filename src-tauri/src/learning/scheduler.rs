@@ -50,6 +50,7 @@ pub struct SchedulerState {
     pub exercises_today: i32,
     pub is_paused: bool,
     pub current_word: Option<(Word, WordProgress)>,
+    pub active_category: Option<String>,
 }
 
 impl SchedulerState {
@@ -60,6 +61,7 @@ impl SchedulerState {
             exercises_today: 0,
             is_paused: false,
             current_word: None,
+            active_category: None,
         }
     }
 }
@@ -182,30 +184,57 @@ impl ActivityDetector {
 pub fn select_next_exercise(
     db: &Database,
     current_word: &Option<(Word, WordProgress)>,
+    category_filter: Option<String>,
 ) -> Result<Option<(Word, WordProgress)>> {
     let now = Utc::now();
 
     // In-session micro-interval due?
     if let Some((word, progress)) = current_word {
-        if let Some(next_session) = progress.next_session_review_at {
-            if next_session <= now {
-                return Ok(Some((word.clone(), progress.clone())));
+        // If we have a filter, current word must match it
+        let matches_filter = match &category_filter {
+            None => true,
+            Some(f) if f == "Wszystkie" => true,
+            Some(f) => word.category.as_ref() == Some(f),
+        };
+
+        if matches_filter {
+            if let Some(next_session) = progress.next_session_review_at {
+                if next_session <= now {
+                    return Ok(Some((word.clone(), progress.clone())));
+                }
             }
         }
     }
 
     // SM-2 inter-day review due?
+    // Note: get_due_words currently doesn't take a filter, we could add it but 
+    // for now we filter the result.
     let due = db.get_due_words()?;
-    if !due.is_empty() {
-        return Ok(Some(due.into_iter().next().unwrap()));
+    let filtered_due = due.into_iter().filter(|(w, _p)| {
+        match &category_filter {
+            None => true,
+            Some(f) if f == "Wszystkie" => true,
+            Some(f) => w.category.as_ref() == Some(f),
+        }
+    }).collect::<Vec<_>>();
+
+    if !filtered_due.is_empty() {
+        return Ok(Some(filtered_due.into_iter().next().unwrap()));
     }
 
-    // Fallback: current session word
+    // Fallback: current session word (if it matches filter)
     if let Some(pair) = current_word {
-        return Ok(Some(pair.clone()));
+        let matches_filter = match &category_filter {
+            None => true,
+            Some(f) if f == "Wszystkie" => true,
+            Some(f) => pair.0.category.as_ref() == Some(f),
+        };
+        if matches_filter {
+            return Ok(Some(pair.clone()));
+        }
     }
 
-    db.get_session_word()
+    db.get_next_flashcard_word(None, category_filter)
 }
 
 // ─── Scheduler ────────────────────────────────────────────────────────────────
@@ -297,6 +326,10 @@ impl Scheduler {
         self.state.write().current_word = word;
     }
 
+    pub fn set_active_category(&self, category: Option<String>) {
+        self.state.write().active_category = category;
+    }
+
     pub fn session_id(&self) -> String {
         self.state.read().session_id.clone()
     }
@@ -310,8 +343,11 @@ impl Scheduler {
             iteration += 1;
 
             let mut conditions = self.check_conditions();
-            let current_word   = self.state.read().current_word.clone();
-            let next_exercise  = select_next_exercise(&self.db, &current_word);
+            let (current_word, active_cat) = {
+                let state = self.state.read();
+                (state.current_word.clone(), state.active_category.clone())
+            };
+            let next_exercise  = select_next_exercise(&self.db, &current_word, active_cat);
             conditions.has_due_exercises = next_exercise
                 .as_ref()
                 .map(|o| o.is_some())
