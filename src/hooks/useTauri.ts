@@ -62,6 +62,9 @@ export const api = {
   clearWords: (): Promise<number> =>
     invoke("clear_words"),
 
+  deleteWordsByBatchDate: (date: string): Promise<number> =>
+    invoke("delete_words_by_batch_date", { date }),
+
   getOverallStats: (): Promise<OverallStats> =>
     invoke("get_overall_stats"),
 
@@ -87,6 +90,7 @@ export const api = {
     workHoursOnly: boolean;
     workHoursStart: string;
     workHoursEnd: string;
+    activeCategory?: string | null;
   }> => invoke("get_settings"),
 
   saveSettings: (settings: {
@@ -99,6 +103,7 @@ export const api = {
     workHoursOnly: boolean;
     workHoursStart: string;
     workHoursEnd: string;
+    activeCategory?: string | null;
   }): Promise<void> => invoke("save_settings", { settings }),
 
   hidePopup: (): Promise<void> => invoke("hide_popup"),
@@ -193,6 +198,7 @@ export interface WordWithProgress {
   sentencePl?:   string;
   sentenceEn?:   string;
   category?:     string;
+  createdAt:     string;
   // SRS
   masteryLevel:  SrsMastery;
   repetitions:   number;

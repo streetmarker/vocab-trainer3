@@ -83,8 +83,8 @@ impl LearningEngine {
         })
     }
 
-    pub fn start_session(&self) -> Result<Option<(Word, Exercise)>> {
-        if let Some((word, mut progress)) = self.db.get_session_word()? {
+    pub fn start_session(&self, category_filter: Option<String>) -> Result<Option<(Word, Exercise)>> {
+        if let Some((word, mut progress)) = self.db.get_session_word(category_filter)? {
             progress.introduced_at = Some(Utc::now());
             progress.session_reviews = 0;
             progress.next_session_review_at = Some(sm2::compute_session_interval(0));

@@ -355,6 +355,10 @@ pub fn run() {
                 session_id,
             ));
 
+            if let Some(ref cat) = saved.active_category {
+                scheduler.set_active_category(Some(cat.clone()));
+            }
+
             app.manage(AppState {
                 db: Arc::clone(&db),
                 engine: Arc::clone(&engine),
@@ -392,7 +396,8 @@ pub fn run() {
                 tauri::async_runtime::spawn(async move {
                     // Czekamy 90 sekund, aż system w pełni "wstanie" (WiFi, usługi)
                     tokio::time::sleep(std::time::Duration::from_secs(90)).await;
-                    if let Ok(Some((word, _))) = db_clone.get_session_word() {
+                    let active_cat = sched_clone.active_category();
+                    if let Ok(Some((word, _))) = db_clone.get_session_word(active_cat) {
                         sched_clone.record_popup_showing(); // blocks scheduler loop
                         show_task_notification(&handle, &word);
                     }
@@ -418,6 +423,7 @@ pub fn run() {
             commands::add_word,
             commands::delete_word,
             commands::clear_words,
+            commands::delete_words_by_batch_date,
             commands::get_overall_stats,
             commands::get_daily_stats,
             commands::get_activity_grid,

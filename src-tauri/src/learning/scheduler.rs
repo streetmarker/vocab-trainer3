@@ -330,6 +330,10 @@ impl Scheduler {
         self.state.write().active_category = category;
     }
 
+    pub fn active_category(&self) -> Option<String> {
+        self.state.read().active_category.clone()
+    }
+
     pub fn session_id(&self) -> String {
         self.state.read().session_id.clone()
     }

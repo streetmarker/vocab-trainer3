@@ -252,6 +252,16 @@ impl Database {
         Ok(deleted)
     }
 
+    pub fn delete_words_by_date(&self, date_str: &str) -> Result<usize> {
+        let conn = self.conn.lock();
+        // date(created_at) wycina część YYYY-MM-DD z formatu ISO/RFC3339
+        let deleted = conn.execute(
+            "DELETE FROM word WHERE date(created_at) = ?1",
+            [date_str],
+        )?;
+        Ok(deleted)
+    }
+
     pub fn get_struggling_words(&self, limit: i32, category_filter: Option<String>) -> Result<Vec<Word>> {
         let conn = self.conn.lock();
         let mut stmt = conn.prepare(
@@ -459,8 +469,8 @@ impl Database {
         Ok(streak)
     }
 
-    pub fn get_session_word(&self) -> Result<Option<(Word, WordProgress)>> {
-        self.get_next_flashcard_word(None, None)
+    pub fn get_session_word(&self, category_filter: Option<String>) -> Result<Option<(Word, WordProgress)>> {
+        self.get_next_flashcard_word(None, category_filter)
     }
 
     /// Select the next word for a flashcard session using a weighted scoring algorithm.

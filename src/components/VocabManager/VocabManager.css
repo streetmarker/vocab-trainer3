@@ -105,6 +105,13 @@
 .vm-pos     { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
 .vm-phonetic { font-size: 11px; color: #a78bfa; }
 
+.vm-created-at {
+  font-size: 10px;
+  color: var(--muted);
+  opacity: 0.6;
+  margin-left: auto;
+}
+
 .vm-row-center { flex: 1; }
 .vm-def-preview { font-size: 12px; color: var(--muted); line-height: 1.4; }
 
@@ -344,7 +351,7 @@
   margin-left: 4px;
 }
 
-/* ¦¦ Agent Progress Overlay ¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦ */
+/* ï¿½ï¿½ Agent Progress Overlay ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
 .agent-progress-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;

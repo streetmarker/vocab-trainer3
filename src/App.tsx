@@ -13,9 +13,23 @@ export default function App() {
   const [activeCategory, setActiveCategory] = useState<string>("Wszystkie");
   
   useEffect(() => {
-    // Pobierz aktywną kategorię z localStorage przy starcie
-    const saved = localStorage.getItem("active_category");
-    if (saved) setActiveCategory(saved);
+    // Priorytet: Ustawienia z backendu (settings.json)
+    // Fallback: localStorage
+    api.getSettings().then(s => {
+      if (s.activeCategory) {
+        setActiveCategory(s.activeCategory);
+        localStorage.setItem("active_category", s.activeCategory);
+      } else {
+        const saved = localStorage.getItem("active_category");
+        if (saved) {
+          setActiveCategory(saved);
+          api.setActiveCategory(saved === "Wszystkie" ? null : saved).catch(console.error);
+        }
+      }
+    }).catch(() => {
+      const saved = localStorage.getItem("active_category");
+      if (saved) setActiveCategory(saved);
+    });
   }, []);
 
   const handleCategoryChange = (cat: string) => {
@@ -202,6 +216,7 @@ const SettingsPage: React.FC = () => {
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string>("");
 
   useEffect(() => {
     api.getSettings().then((s) => {
@@ -209,6 +224,30 @@ const SettingsPage: React.FC = () => {
       setLoaded(true);
     }).catch(() => setLoaded(true));
   }, []);
+
+  const handleDeleteByDate = async () => {
+    if (!selectedDate) {
+      alert("Proszę wybrać datę.");
+      return;
+    }
+
+    const confirmed = confirm(
+      `Czy na pewno chcesz usunąć wszystkie fiszki (wraz ze statystykami) z dnia ${selectedDate}?\n\nOperacji nie można cofnąć.`
+    );
+
+    if (!confirmed) return;
+
+    setClearing(true);
+    try {
+      const deleted = await api.deleteWordsByBatchDate(selectedDate);
+      alert(`Pomyślnie usunięto ${deleted} fiszek.`);
+      window.dispatchEvent(new CustomEvent("refresh-categories"));
+    } catch (err) {
+      alert("Błąd podczas usuwania: " + err);
+    } finally {
+      setClearing(false);
+    }
+  };
 
   const handleClearWords = async () => {
     const confirmed = confirm(
@@ -343,17 +382,42 @@ const SettingsPage: React.FC = () => {
           />
         </SettingsSection>
 
-        <SettingsSection title="Dane">
+        <SettingsSection title="Zarządzanie danymi">
           <SettingRow
-            label="Wyczyść bazę słówek"
-            description="Trwale usuwa wszystkie słowa i cały postęp nauki (SRS, historia, powtórki). Operacji nie można cofnąć."
+            label="Usuń fiszki z dnia"
+            description="Usuwa wszystkie fiszki dodane w konkretnym dniu wraz z ich historią nauki."
+            control={
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  className="setting-input"
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                />
+                <button
+                  className="btn-danger"
+                  onClick={handleDeleteByDate}
+                  disabled={clearing || !selectedDate}
+                  style={{ whiteSpace: "nowrap" }}
+                >
+                  {clearing ? "Usuwanie…" : "🗑 Usuń z tego dnia"}
+                </button>
+              </div>
+            }
+          />
+        </SettingsSection>
+
+        <SettingsSection title="Niebezpieczna strefa">
+          <SettingRow
+            label="Wyczyść całą bazę słówek"
+            description="Trwale usuwa WSZYSTKIE słowa i cały postęp nauki. Operacji nie można cofnąć."
             control={
               <button
                 className="btn-danger"
                 onClick={handleClearWords}
                 disabled={clearing}
               >
-                {clearing ? "Usuwanie…" : "🗑 Wyczyść bazę"}
+                {clearing ? "Usuwanie…" : "💀 Wyczyść wszystko"}
               </button>
             }
           />

@@ -52,7 +52,6 @@ export const VocabManager: React.FC<{ activeCategory: string }> = ({ activeCateg
   const [form, setForm]           = useState<WordFormData>(emptyForm);
   const [saving, setSaving]       = useState(false);
   const [error, setError]         = useState("");
-  const [seeding, setSeeding]     = useState(false);
   const [agentStatus, setAgentStatus] = useState<AgentStatus | null>(null);
 
   const loadData = async () => {
@@ -399,7 +398,6 @@ const VocabRow: React.FC<{
           <span className="vm-term">{word.term}</span>
           <span className="vm-pos">{PART_OF_SPEECH_LABELS[word.partOfSpeech as PartOfSpeech] ?? word.partOfSpeech}</span>
           {word.phonetic && <span className="vm-phonetic">{word.phonetic}</span>}
-          {/* {word.createdAt && <span className="vm-created-at">Dodano: {new Date(word.createdAt).toLocaleDateString()}</span>} */}
         </div>
         <div className="vm-row-center">
           <span className="vm-def-preview">{word.definition}</span>
@@ -427,6 +425,9 @@ const VocabRow: React.FC<{
 
       {expanded && (
         <div className="vm-row-detail">
+          <div className="vm-created-at">
+            Dodano: {new Date(word.createdAt).toLocaleDateString()}
+          </div>
           {/* Sentences */}
           {word.sentencePl && (
             <div className="detail-section">

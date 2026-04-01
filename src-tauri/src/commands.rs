@@ -69,7 +69,8 @@ pub async fn submit_answer(
 pub async fn start_session(
     state: State<'_, AppState>,
 ) -> Result<Option<serde_json::Value>, String> {
-    match state.engine.start_session() {
+    let active_cat = state.scheduler.active_category();
+    match state.engine.start_session(active_cat) {
         Ok(Some((word, exercise))) => Ok(Some(serde_json::json!({
             "word": word,
             "exercise": exercise,
@@ -104,6 +105,7 @@ pub struct WordWithProgress {
     pub sentence_pl:    Option<String>,
     pub sentence_en:    Option<String>,
     pub category:       Option<String>,
+    pub created_at:     String,
     // SRS progress (None if word has never been reviewed)
     pub mastery_level:  String,
     pub repetitions:    i32,
@@ -175,6 +177,7 @@ pub async fn get_srs_overview(state: State<'_, AppState>) -> Result<SrsOverview,
             sentence_pl:    word.sentence_pl.clone(),
             sentence_en:    word.sentence_en.clone(),
             category:       word.category.clone(),
+            created_at:     word.created_at.to_rfc3339(),
             mastery_level:  p.mastery_level.as_str().to_string(),
             repetitions:    p.repetitions,
             interval_days:  p.interval_days,
@@ -275,11 +278,17 @@ pub async fn reclassify_words(state: State<'_, AppState>) -> Result<ReclassifyPa
 pub async fn delete_word(word_id: i64, state: State<'_, AppState>) -> Result<(), String> {
     state.db.delete_word(word_id).map_err(|e| e.to_string())
 }
-
 #[tauri::command]
 pub async fn clear_words(state: State<'_, AppState>) -> Result<usize, String> {
     let deleted = state.db.clear_all_words().map_err(|e| e.to_string())?;
     log::info!("clear_words: permanently deleted {} words (cascade: progress + history)", deleted);
+    Ok(deleted)
+}
+
+#[tauri::command]
+pub async fn delete_words_by_batch_date(date: String, state: State<'_, AppState>) -> Result<usize, String> {
+    let deleted = state.db.delete_words_by_date(&date).map_err(|e| e.to_string())?;
+    log::info!("delete_words_by_batch_date: deleted {} words from date {}", deleted, date);
     Ok(deleted)
 }
 
@@ -339,7 +348,13 @@ pub async fn set_active_category(
     category: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    state.scheduler.set_active_category(category);
+    state.scheduler.set_active_category(category.clone());
+    
+    // Persist choice to settings.json
+    let mut settings = get_settings(state.clone()).await.unwrap_or_else(|_| AppSettings::default());
+    settings.active_category = category;
+    save_settings(settings, state).await?;
+    
     Ok(())
 }
 
@@ -436,6 +451,7 @@ pub struct AppSettings {
     pub work_hours_only: bool,
     pub work_hours_start: String,
     pub work_hours_end: String,
+    pub active_category: Option<String>,
 }
 
 impl Default for AppSettings {
@@ -450,6 +466,7 @@ impl Default for AppSettings {
             work_hours_only: true,
             work_hours_start: "08:00".to_string(),
             work_hours_end: "22:00".to_string(),
+            active_category: None,
         }
     }
 }
@@ -516,7 +533,8 @@ pub async fn hide_popup(window: tauri::Window) -> Result<(), String> {
 /// Called from Dashboard "Ćwicz teraz" button — picks next due word and shows popup
 #[tauri::command]
 pub async fn trigger_popup(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<bool, String> {
-    match state.db.get_session_word().map_err(|e| e.to_string())? {
+    let active_cat = state.scheduler.active_category();
+    match state.db.get_session_word(active_cat).map_err(|e| e.to_string())? {
         Some((word, _)) => {
             crate::show_popup(&app, word.id);
             Ok(true)
@@ -697,8 +715,9 @@ pub async fn srs_answer(
     );
 
     // ── Next card ─────────────────────────────────────────────────────────────
+    let active_cat = state.scheduler.active_category();
     let next = state.db
-        .get_next_flashcard_word(Some(word_id), None)
+        .get_next_flashcard_word(Some(word_id), active_cat)
         .map_err(|e| e.to_string())?;
 
     let (next_word_id, next_term_pl, next_term_en, next_part_of_speech,
@@ -815,6 +834,8 @@ pub async fn import_words_from_json(
     let mut skipped  = 0usize;
     let mut warnings = Vec::new();
 
+    let batch_date = chrono::Utc::now();
+
     for (i, item) in items.into_iter().enumerate() {
         let label = format!("#{} \"{}\"", i + 1, item.term);
 
@@ -837,11 +858,6 @@ pub async fn import_words_from_json(
             .map(|d| d.clamp(1, 5))
             .unwrap_or(2);
 
-        let created_at = item.created_at
-            .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
-            .map(|dt| dt.with_timezone(&chrono::Utc))
-            .unwrap_or_else(chrono::Utc::now);
-
         let word = crate::db::Word {
             id: 0,
             term,
@@ -854,7 +870,7 @@ pub async fn import_words_from_json(
             antonyms:       item.antonyms,
             tags:           item.tags,
             difficulty,
-            created_at,
+            created_at:     batch_date,
             is_active:      true,
             sentence_pl:    item.sentence_pl,
             sentence_en:    item.sentence_en,
