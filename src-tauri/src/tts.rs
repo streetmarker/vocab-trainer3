@@ -61,10 +61,18 @@ pub async fn play_or_generate_tts<R: Runtime>(
 
     let client = reqwest::Client::new();
     
+    // Get API key from environment (runtime)
+    let api_key = std::env::var("API_PROXY_KEY").unwrap_or_default();
     
+    if api_key.is_empty() {
+        log::warn!("API_PROXY_KEY is empty in environment!");
+    } else {
+        log::info!("Using API_PROXY_KEY: {}***", &api_key[..5]);
+    }
+
     let response = client
         .post("https://vocab-tts-proxy-1092910876208.europe-west1.run.app/text-to-speech")
-        .header("x-api-key", option_env!("API_PROXY_KEY").unwrap_or(""))
+        .header("x-api-key", api_key)
         .json(&serde_json::json!({
             "text": payload.text 
         }))
