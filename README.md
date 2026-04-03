@@ -86,7 +86,7 @@ Aby uruchomić projekt lokalnie, upewnij się, że masz zainstalowane środowisk
 
 4. **Budowanie wersji produkcyjnej:**
    ```bash
-   npm run tauri build
+   $env:API_PROXY_KEY=""; npm run tauri build --release
    ```
 
 ---

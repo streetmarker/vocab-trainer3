@@ -103,6 +103,9 @@ export default function App() {
 
 const CategorySelector: React.FC<{ active: string; onChange: (c: string) => void }> = ({ active, onChange }) => {
   const [categories, setCategories] = useState<string[]>(["Wszystkie"]);
+  const [canScrollUp, setCanScrollUp] = useState(false);
+  const [canScrollDown, setCanScrollDown] = useState(false);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
 
   const refresh = useCallback(() => {
     // Pobierz unikalne kategorie z bazy
@@ -122,10 +125,30 @@ const CategorySelector: React.FC<{ active: string; onChange: (c: string) => void
     return () => window.removeEventListener("refresh-categories", refresh);
   }, [refresh]);
 
+  const checkScroll = useCallback(() => {
+    if (scrollRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+      setCanScrollUp(scrollTop > 5);
+      setCanScrollDown(scrollTop + clientHeight < scrollHeight - 5);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkScroll();
+    // Re-check when categories change
+    const timeout = setTimeout(checkScroll, 100);
+    return () => clearTimeout(timeout);
+  }, [categories, checkScroll]);
+
   return (
     <div className="category-sidebar-section">
       <div className="cat-section-label">Źródło danych</div>
-      <div className="cat-list">
+      
+      <div className={`cat-scroll-indicator up ${canScrollUp ? 'visible' : ''}`}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+      </div>
+
+      <div className="cat-list" ref={scrollRef} onScroll={checkScroll}>
         {categories.map(cat => (
           <button 
             key={cat} 
@@ -136,6 +159,10 @@ const CategorySelector: React.FC<{ active: string; onChange: (c: string) => void
             {cat}
           </button>
         ))}
+      </div>
+
+      <div className={`cat-scroll-indicator down ${canScrollDown ? 'visible' : ''}`}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
       </div>
     </div>
   );
