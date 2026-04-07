@@ -61,13 +61,14 @@ pub async fn play_or_generate_tts<R: Runtime>(
 
     let client = reqwest::Client::new();
     
-    // Get API key from environment (runtime)
-    let api_key = std::env::var("API_PROXY_KEY").unwrap_or_default();
+    // 1. Spróbuj pobrać z systemu (Runtime - działa w Dev)
+    // 2. Jeśli brak, pobierz z makra (Compile-time - zaszyte w EXE przy buildzie)
+    let api_key = std::env::var("API_PROXY_KEY")
+        .unwrap_or_else(|_| option_env!("API_PROXY_KEY").unwrap_or("").to_string());
     
     if api_key.is_empty() {
-        log::warn!("API_PROXY_KEY is empty in environment!");
-    } else {
-        log::info!("Using API_PROXY_KEY: {}***", &api_key[..5]);
+        log::error!("BŁĄD KRYTYCZNY: Brak klucza API_PROXY_KEY!");
+        return Err("Błąd konfiguracji: Brak klucza API".into());
     }
 
     let response = client
