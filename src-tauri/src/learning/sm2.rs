@@ -53,7 +53,7 @@ pub fn calculate_next(progress: &WordProgress, quality: i32, difficulty: i32) ->
             2 => 6.0,
             _ => (progress.interval_days * new_ef).round(),
         };
-        (next_iterations, interval)
+        (next_iterations, interval.min(3650.0)) // Cap at 10 years
     };
 
     // ── Difficulty Modifier ───────────────────────────────────────────────

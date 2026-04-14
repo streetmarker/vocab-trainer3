@@ -368,11 +368,17 @@ pub fn run() {
                 pending_word_id: std::sync::Mutex::new(None),
             });
 
-            setup_tray(app)?;
+            // Decide whether to show window or stay in tray based on launch arguments
+            let args: Vec<String> = std::env::args().collect();
+            let is_autostart = args.iter().any(|a| a == "--autostart");
 
-            // Start hidden in tray
             if let Some(window) = app.get_webview_window("main") {
-                let _ = window.hide();
+                if is_autostart {
+                    let _ = window.hide();
+                } else {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
             }
 
             // Scheduler background loop
