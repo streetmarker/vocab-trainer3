@@ -6,7 +6,10 @@ import { api } from "../../hooks/useTauri";
 import { MentorCenter } from "../Mentor/MentorCenter";
 import "./Dashboard.css";
 
-export const Dashboard: React.FC<{ activeCategory: string }> = ({ activeCategory }) => {
+export const Dashboard: React.FC<{ 
+  activeCategory: string;
+  onStartStacked: () => void;
+}> = ({ activeCategory, onStartStacked }) => {
   const [stats, setStats]           = useState<OverallStats | null>(null);
   const [activity, setActivity]     = useState<ActivityDay[]>([]);
   const [words, setWords]           = useState<Word[]>([]);
@@ -49,6 +52,10 @@ export const Dashboard: React.FC<{ activeCategory: string }> = ({ activeCategory
           <p className="dash-subtitle">Twoje postępy w nauce angielskiego</p>
         </div>
         <div className="header-right">
+          <button className="stacked-trigger-btn" onClick={onStartStacked}>
+            <span className="btn-icon">🗄️</span>
+            Ćwicz teraz
+          </button>
           <button className="mentor-trigger-btn" onClick={() => setShowMentor(true)}>
             <span className="btn-icon">🧠</span>
             Centrum Mentora

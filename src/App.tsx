@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { Dashboard } from "./components/Dashboard/Dashboard";
 import { VocabManager } from "./components/VocabManager/VocabManager";
+import { StackedExercise } from "./components/ExercisePopup/StackedExercise";
 import type { AppRoute } from "./types";
 import { api } from "./hooks/useTauri";
 import "./styles/global.css";
@@ -11,6 +12,10 @@ import "./styles/global.css";
 export default function App() {
   const [route, setRoute] = useState<AppRoute>("dashboard");
   const [activeCategory, setActiveCategory] = useState<string>("Wszystkie");
+  
+  const handleCloseStacked = () => {
+    setRoute("dashboard");
+  };
   
   useEffect(() => {
     // Priorytet: Ustawienia z backendu (settings.json)
@@ -91,9 +96,17 @@ export default function App() {
 
       {/* ── Main Content ──────────────────────────────────────────────── */}
       <main className="main-content">
-        {route === "dashboard" && <Dashboard activeCategory={activeCategory} />}
+        {route === "dashboard" && (
+          <Dashboard 
+            activeCategory={activeCategory} 
+            onStartStacked={() => setRoute("stacked-exercise")} 
+          />
+        )}
         {route === "vocab" && <VocabManager activeCategory={activeCategory} />}
         {route === "settings" && <SettingsPage />}
+        {route === "stacked-exercise" && (
+          <StackedExercise activeCategory={activeCategory} onClose={handleCloseStacked} />
+        )}
       </main>
     </div>
   );

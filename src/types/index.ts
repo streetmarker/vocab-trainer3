@@ -218,7 +218,7 @@ export interface SchedulerStatus {
 
 // ─── UI State ─────────────────────────────────────────────────────────────────
 
-export type AppRoute = "dashboard" | "vocab" | "settings" | "popup";
+export type AppRoute = "dashboard" | "vocab" | "settings" | "popup" | "stacked-exercise";
 
 export interface ExerciseSession {
   currentExercise: Exercise | null;

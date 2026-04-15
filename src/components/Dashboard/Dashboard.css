@@ -38,7 +38,7 @@
   align-items: center;
 }
 
-.mentor-trigger-btn {
+.mentor-trigger-btn, .stacked-trigger-btn {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -53,10 +53,18 @@
   box-shadow: 0 4px 12px rgba(108, 99, 255, 0.2);
 }
 
-.mentor-trigger-btn:hover {
+.stacked-trigger-btn {
+  background: #10b981;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+.mentor-trigger-btn:hover, .stacked-trigger-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(108, 99, 255, 0.3);
   filter: brightness(1.1);
+}
+
+.stacked-trigger-btn:hover {
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
 }
 
 .btn-icon {
