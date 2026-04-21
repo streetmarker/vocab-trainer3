@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { api } from "../../hooks/useTauri";
 import { Word, PART_OF_SPEECH_LABELS } from "../../types";
+import TtsPlayer from "../TtsPlayer";
 import "./StackedExercise.css";
 
 interface StackedExerciseProps {
@@ -103,8 +104,23 @@ export const StackedExercise: React.FC<StackedExerciseProps> = ({ activeCategory
                     <span className="ac-hint-text">Kliknij, aby odkryć</span>
                   </div>
                   <div className="ac-face ac-face--back">
-                    <div className="ac-term-en">{activeWord.term}</div>
+                    <div className="ac-term-en-wrapper">
+                      <div className="ac-term-en">{activeWord.term}</div>
+                      <div className="ac-tts-icon-wrapper" onClick={(e) => e.stopPropagation()}>
+                      </div>
+                        <TtsPlayer 
+                          term={activeWord.term} 
+                          exampleEn={activeWord.sentenceEn || ""} 
+                          autoPlay={false} 
+                        />
+                    </div>
                     {activeWord.phonetic && <div className="ac-phonetic">/{activeWord.phonetic}/</div>}
+                    {activeWord.sentenceEn && (
+                      <div className="ac-sentence-en">
+                        <span className="ac-sentence-icon">💬</span>
+                        <em>{activeWord.sentenceEn.replace(/--(.*?)--/g, '$1')}</em>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

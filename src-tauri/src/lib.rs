@@ -7,10 +7,7 @@ pub mod commands;
 pub mod tts;
 
 use std::sync::Arc;
-use anyhow::Result;
 use tauri::{
-    menu::{Menu, MenuItem, PredefinedMenuItem},
-    tray::{TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState},
     Manager, WindowEvent, PhysicalPosition, PhysicalSize,
 };
 

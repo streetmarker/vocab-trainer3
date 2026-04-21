@@ -20,9 +20,21 @@ export function SrsBadge({ word }: Props) {
       : formatInterval(word.intervalDays);
 
   const lastLabel = word.lastReviewAt ? formatAgo(word.lastReviewAt) : null;
+  const nextLabel = word.nextReviewAt ? new Date(word.nextReviewAt).toLocaleString('pl-PL', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit'
+  }) : null;
+
+  const tooltip = [
+    lastLabel ? `Ostatnia: ${lastLabel}` : "Nie powtarzane",
+    nextLabel ? `Następna: ${nextLabel}` : null
+  ].filter(Boolean).join('\n');
 
   return (
-    <div className="srs-badge" title={lastLabel ? `Ostatnia powtórka: ${lastLabel}` : "Nie powtarzane"}>
+    <div className="srs-badge" title={tooltip}>
       {/* Mastery pill */}
       <span
         className="srs-badge__mastery"

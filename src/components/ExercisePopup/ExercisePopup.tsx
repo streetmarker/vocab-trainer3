@@ -8,6 +8,7 @@ import type {
 import { PART_OF_SPEECH_LABELS } from "../../types";
 import { api } from "../../hooks/useTauri";
 import { formatReviewDate } from "../../utils/date";
+import TtsPlayer from "../TtsPlayer";
 import "./ExercisePopup.css";
 
 interface Props {
@@ -153,6 +154,12 @@ const IntroductionView: React.FC<{
     <div className="intro-pos">{PART_OF_SPEECH_LABELS[exercise.partOfSpeech] ?? exercise.partOfSpeech}</div>
 
     <div className="intro-definition">{exercise.definition}</div>
+
+    <TtsPlayer 
+      term={exercise.term} 
+      exampleEn={exercise.example ?? ""} 
+      autoPlay={false}
+    />
 
     {exercise.definitionPl && (
       <div className="intro-definition-pl">

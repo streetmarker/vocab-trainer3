@@ -226,8 +226,41 @@
 }
 
 .ac-hint-text { color: #666; font-size: 14px; font-style: italic; }
-.ac-term-en { font-size: 28px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
-.ac-phonetic { font-size: 16px; color: #888; font-family: monospace; }
+.ac-term-en { font-size: 28px; font-weight: 700; color: var(--accent); margin-bottom: 0; }
+.ac-phonetic { font-size: 16px; color: #888; font-family: monospace; margin-top: 4px; }
+
+.ac-sentence-en {
+  margin-top: 16px;
+  font-size: 14px;
+  color: #bbb;
+  max-width: 90%;
+  line-height: 1.4;
+}
+
+.ac-sentence-icon {
+  margin-right: 8px;
+  opacity: 0.6;
+}
+
+.ac-term-en-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.ac-tts-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
+  cursor: pointer;
+}
+
+.ac-tts-icon-wrapper:hover {
+  transform: scale(1.1);
+}
 
 .ac-instructions {
   margin-top: 20px;

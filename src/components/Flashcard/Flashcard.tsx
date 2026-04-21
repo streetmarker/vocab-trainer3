@@ -11,6 +11,7 @@
 // The parent (TaskNotification) owns the save/feedback/next cycle.
 
 import React, { useState } from "react";
+import TtsPlayer from "../TtsPlayer";
 import "./Flashcard.css";
 
 export type FlashcardPhase  = "initial" | "flipped" | "answered";
@@ -38,6 +39,8 @@ interface Props {
   frontNode?:   React.ReactNode;
   /** Optional rich content overriding plain text on back */
   backNode?:    React.ReactNode;
+  term?:        string;
+  exampleEn?:   string;
   onFlip?:      () => void;
   onAnswer?:    (grade: SrsGrade) => void;
   disabled?:    boolean;
@@ -47,6 +50,7 @@ interface Props {
 export function Flashcard({
   front, back, hint, backLabel,
   frontNode, backNode,
+  term, exampleEn,
   onFlip, onAnswer,
   disabled = false,
   intervalHints,
@@ -110,6 +114,11 @@ export function Flashcard({
                   <span className="fc-word fc-word--back">{back}</span>
                 </>
             }
+            {term && (
+              <div className="fc-tts-wrap">
+                <TtsPlayer term={term} exampleEn={exampleEn ?? ""} autoPlay={false} />
+              </div>
+            )}
           </div>
         </div>
       </div>

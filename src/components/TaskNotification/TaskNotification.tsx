@@ -263,12 +263,10 @@ export function TaskNotification({ termPl, termEn, partOfSpeech, phonetic, sente
                 {word.partOfSpeech && <span className="fc-back-pos">{word.partOfSpeech}</span>}
               </div>
               <div className="fc-back-sentence">{parseBold(word.sentenceEn ?? "")}</div>
-              <TtsPlayer 
-                term={word.termEn} 
-                exampleEn={trimMarkers(word.sentenceEn ?? "")} 
-              />
             </div>
           }
+          term={word.termEn}
+          exampleEn={trimMarkers(word.sentenceEn ?? "")}
           hint="kliknij aby zobaczyć po angielsku"
           onFlip={handleCardFlip}
           onAnswer={handleGrade}
