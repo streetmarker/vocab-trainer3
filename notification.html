@@ -9,19 +9,22 @@
         margin: 0;
         padding: 0;
         background: transparent !important;
-        overflow: hidden;
         width: 100%;
-        height: 100%;
+        height: 100%; /* Fill the whole system window */
+        overflow: hidden !important;
         user-select: none;
       }
       #notification-root {
         margin: 0;
         padding: 0;
         background: transparent;
-        overflow: hidden;
         width: 100%;
-        height: 100%;
+        height: 100%; 
         display: flex;
+        flex-direction: column;
+        justify-content: flex-end; /* Anchor content to the bottom of the window */
+        visibility: collapse; /* Hide the container and all children by default */
+        pointer-events: none; /* Make clicks pass through by default */
       }
     </style>
   </head>

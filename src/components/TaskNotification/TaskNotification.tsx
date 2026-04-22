@@ -5,7 +5,6 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { Flashcard, type SrsGrade } from "../Flashcard/Flashcard";
 import { api } from "../../hooks/useTauri";
 import { formatReviewDate } from "../../utils/date";
-import TtsPlayer from "../TtsPlayer";
 
 const appWindow    = getCurrentWebviewWindow();
 const AUTO_CLOSE   = 20_000;
@@ -73,6 +72,7 @@ type Props = {
 };
 
 export function TaskNotification({ termPl, termEn, partOfSpeech, phonetic, sentencePl, sentenceEn, wordId, onDismiss }: Props) {
+  const rootRef = useRef<HTMLDivElement>(null);
   const [slidePhase, setSlidePhase] = useState<SlidePhase>("in");
   const [innerPhase, setInnerPhase] = useState<InnerPhase>("idle");
   const [word, setWord]             = useState<WordState>({ wordId, termPl, termEn, partOfSpeech, phonetic, sentencePl, sentenceEn });
@@ -86,6 +86,8 @@ export function TaskNotification({ termPl, termEn, partOfSpeech, phonetic, sente
   const pausedRef  = useRef(false);
   const closedRef  = useRef(false);
   const isHoveringRef = useRef(false);
+
+  const isFlipped = innerPhase !== "idle";
 
   const hardClose = useCallback((skipGapReset = false) => {
     if (closedRef.current) return;
@@ -219,10 +221,10 @@ export function TaskNotification({ termPl, termEn, partOfSpeech, phonetic, sente
     }
   };
 
-  const isFlipped = innerPhase !== "idle";
 
   return (
     <div
+      ref={rootRef}
       className={`tn-root tn-root--${slidePhase}`}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}

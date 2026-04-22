@@ -4,9 +4,9 @@
 
 use std::path::PathBuf;
 use std::sync::Mutex;
-use tauri::Manager;
 
 use std::sync::Arc;
+use tauri::AppHandle;
 use tauri::State;
 
 use crate::db::{Database, Word, ExerciseType};
@@ -345,6 +345,7 @@ pub async fn set_scheduler_paused(
 
 #[tauri::command]
 pub async fn set_active_category(
+    app: tauri::AppHandle,
     category: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
@@ -353,7 +354,7 @@ pub async fn set_active_category(
     // Persist choice to settings.json
     let mut settings = get_settings(state.clone()).await.unwrap_or_else(|_| AppSettings::default());
     settings.active_category = category;
-    save_settings(settings, state).await?;
+    save_settings(app, settings, state).await?;
     
     Ok(())
 }
@@ -487,6 +488,7 @@ pub async fn get_settings(state: State<'_, AppState>) -> Result<AppSettings, Str
 
 #[tauri::command]
 pub async fn save_settings(
+    app: tauri::AppHandle,
     settings: AppSettings,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
@@ -494,6 +496,14 @@ pub async fn save_settings(
     let path = settings_path(&state.data_dir);
     let text = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
     std::fs::write(&path, text).map_err(|e| e.to_string())?;
+
+    // Update system autostart status
+    use tauri_plugin_autostart::ManagerExt;
+    if settings.autostart {
+        let _ = app.autolaunch().enable();
+    } else {
+        let _ = app.autolaunch().disable();
+    }
 
     // Apply to running scheduler immediately — no restart required
     use crate::learning::scheduler::SchedulerConfig;
@@ -897,23 +907,21 @@ pub async fn import_words_from_json(
     Ok(ImportResult { added, skipped, warnings })
 }
 #[tauri::command]
-pub async fn initialize_autostart(app: tauri::AppHandle) -> Result<(), String> {
+pub async fn initialize_autostart(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<(), String> {
     use tauri_plugin_autostart::ManagerExt;
     
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    let flag_path = data_dir.join(".autostart_initialized");
+    let settings = get_settings(state).await.unwrap_or_else(|_| AppSettings::default());
+    
+    if settings.autostart {
+        let _ = app.autolaunch().enable();
+        log::info!("Autostart enabled (based on settings)");
+    } else {
+        let _ = app.autolaunch().disable();
+        log::info!("Autostart disabled (based on settings)");
+    }
 
-    // Wykonaj tylko, jeśli aplikacja nie była jeszcze inicjalizowana
-    if !flag_path.exists() {
-        log::info!("Pierwsze uruchomienie: Konfiguracja autostartu...");
-            let _ = app.autolaunch().enable();
-
-            // Tworzymy pusty plik jako znacznik ukończenia konfiguracji
-            std::fs::write(flag_path, "1").map_err(|e| e.to_string())?;
-        }
-
-        Ok(())
-        }
+    Ok(())
+}
 
         // ─── AI Mentor Commands ───────────────────────────────────────────────────────
 

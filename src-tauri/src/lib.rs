@@ -56,28 +56,19 @@ pub fn show_task_notification(app: &tauri::AppHandle, word: &db::Word) {
     //   - Min height: 200px (minimum content space)
     //   - Max height: 600px (don't dominate screen)
 
-    // ── Adaptive Window Engine (Proposal 2) ──────────────────────────────────
-    const BASE_WIDTH: f64 = 380.0;
-    const BASE_HEIGHT: f64 = 280.0;
-    
+    // ── Dynamic Window Engine ──────────────────────────────────
     let (win_w_log, win_h_log) = if let Ok(Some(monitor)) = app.primary_monitor() {
         let scale = monitor.scale_factor();
-        let phys_w = monitor.size().width as f64;
-        let logical_screen_w = phys_w / scale;
-
-        // Baza skalowana o DPI (które odzwierciedla rozmiar tekstu w Win11)
-        let mut target_w = BASE_WIDTH;
-        let mut target_h = BASE_HEIGHT;
-
-        // Clamp: okno nie może zająć mniej niż 20% i więcej niż 45% szerokości ekranu
-        let min_w = logical_screen_w * 0.20;
-        let max_w = logical_screen_w * 0.45;
-        target_w = target_w.clamp(min_w, max_w);
-        target_h = target_h * (target_w / BASE_WIDTH);
-
-        (target_w, target_h)
+        let phys_h = monitor.size().height as f64;
+        let logical_h = phys_h / scale;
+        log::info!("[notif] monitor scale factor: {}, physical height: {}, logical height: {}", scale, phys_h, logical_h);
+        // Target 60% of screen height to allow for large system Text Size settings.
+        // The window is transparent and content is anchored to the bottom,
+        // so it grows upwards naturally within this safe transparent zone.
+        let target_h = logical_h * 0.60;
+        (400.0, target_h)
     } else {
-        (BASE_WIDTH, BASE_HEIGHT)
+        (400.0, 600.0) // Fallback
     };
 
     // termPl = Polish definition shown bold on flashcard front
@@ -299,7 +290,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
-            None,
+            Some(vec!["--autostart"]),
         ))
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             if let Some(window) = app.get_webview_window("main") {
