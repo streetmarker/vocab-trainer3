@@ -71,8 +71,11 @@ type Props = {
   wordId: number; onDismiss: () => void;
 };
 
+import { useAutoResizeWindow } from "../../hooks/useAutoResizeWindow";
+
 export function TaskNotification({ termPl, termEn, partOfSpeech, phonetic, sentencePl, sentenceEn, wordId, onDismiss }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
+  useAutoResizeWindow(rootRef);
   const [slidePhase, setSlidePhase] = useState<SlidePhase>("in");
   const [innerPhase, setInnerPhase] = useState<InnerPhase>("idle");
   const [word, setWord]             = useState<WordState>({ wordId, termPl, termEn, partOfSpeech, phonetic, sentencePl, sentenceEn });

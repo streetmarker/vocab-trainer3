@@ -24,22 +24,20 @@ body {
 
 /* ── Card root ─────────────────────────────────────────────────────────────── */
 .tn-root {
-  position: relative; /* Change from fixed to relative to work with auto-resize logic */
-  width: 100%;
-  min-height: 12.5rem; /* 200px / 16 */
+  width: 25rem; /* 400px fixed width for the notification */
+  min-height: 2rem; 
   display: flex;
   flex-direction: column;
   background: #1e1f26;
   border: 1px solid rgba(255, 255, 255, 0.10);
-  border-bottom: none;
-  border-radius: 0.75rem 0.75rem 0 0; /* 12px */
+  border-radius: 0.75rem; /* Full radius since it's floating */
   box-shadow:
-    0 -0.25rem 1.5rem rgba(0, 0, 0, 0.55), /* 4px 24px */
+    0 0.5rem 1.5rem rgba(0, 0, 0, 0.55),
     0 -1px 0 rgba(255, 255, 255, 0.04) inset;
-  overflow: hidden; /* Hide scrollbars, ResizeObserver ensures window is large enough */
+  overflow: hidden; 
   cursor: default;
-  visibility: visible; /* Make the card visible even though parent is hidden */
-  pointer-events: auto; /* Re-enable clicks for the card */
+  visibility: visible; 
+  pointer-events: auto; 
 
   /* Slide animations */
   transition: transform var(--slide-dur, 320ms) cubic-bezier(0.22, 1, 0.36, 1),
@@ -48,9 +46,9 @@ body {
 
 /* Phases */
 .tn-root--in {
-  transform: translateY(110%);
+  transform: translateY(2rem); /* Small slide up from below */
   opacity: 0;
-  --slide-dur: 0ms; /* instant initial off-screen placement */
+  --slide-dur: 0ms; 
 }
 .tn-root--idle {
   transform: translateY(0);
@@ -58,7 +56,7 @@ body {
   --slide-dur: 340ms;
 }
 .tn-root--out {
-  transform: translateY(110%);
+  transform: translateY(2rem);
   opacity: 0;
   --slide-dur: 320ms;
 }

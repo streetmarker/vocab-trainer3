@@ -46,30 +46,9 @@ pub fn show_task_notification(app: &tauri::AppHandle, word: &db::Word) {
     log::info!("[notif] show_task_notification called for '{}'", word.term);
 
     // ── Compute logical window size from primary monitor ──────────────────────
-    // Target: 22% of logical screen width, 35% of logical screen height
-    // "Logical px" = CSS px = physical px / scale_factor.
-    // Window scales proportionally with screen DPI and resolution.
-    //
-    // Clamping ensures:
-    //   - Min width: 300px (readability threshold)
-    //   - Max width: 480px (don't take up too much screen)
-    //   - Min height: 200px (minimum content space)
-    //   - Max height: 600px (don't dominate screen)
-
-    // ── Dynamic Window Engine ──────────────────────────────────
-    let (win_w_log, win_h_log) = if let Ok(Some(monitor)) = app.primary_monitor() {
-        let scale = monitor.scale_factor();
-        let phys_h = monitor.size().height as f64;
-        let logical_h = phys_h / scale;
-        log::info!("[notif] monitor scale factor: {}, physical height: {}, logical height: {}", scale, phys_h, logical_h);
-        // Target 60% of screen height to allow for large system Text Size settings.
-        // The window is transparent and content is anchored to the bottom,
-        // so it grows upwards naturally within this safe transparent zone.
-        let target_h = logical_h * 0.60;
-        (400.0, target_h)
-    } else {
-        (400.0, 600.0) // Fallback
-    };
+    // Window starts with a compact initial size; frontend useAutoResizeWindow 
+    // hook will immediately adjust it to fit the DOM content.
+    let (win_w_log, win_h_log) = (400.0, 200.0);
 
     // termPl = Polish definition shown bold on flashcard front
     let term_pl        = word.definition_pl.clone()
