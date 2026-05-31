@@ -6,7 +6,6 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 
 use std::sync::Arc;
-use tauri::AppHandle;
 use tauri::State;
 
 use crate::db::{Database, Word, ExerciseType};
