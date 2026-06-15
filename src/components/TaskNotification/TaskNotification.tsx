@@ -113,6 +113,14 @@ export function TaskNotification({ termPl, termEn, partOfSpeech, phonetic, sente
     hardClose(true); // skipGapReset=true — already called taskNotificationLater above
   }, [word.wordId, hardClose]);
 
+  const handlePause = useCallback(async () => {
+    try {
+      await api.setSchedulerPaused(true);
+      await api.taskNotificationLater(word.wordId);
+    } catch { /* ignore */ }
+    hardClose(true);
+  }, [word.wordId, hardClose]);
+
   const handleCardFlip = useCallback(() => {
     setInnerPhase("flipped");
     // We do NOT pause here anymore.
@@ -295,6 +303,7 @@ export function TaskNotification({ termPl, termEn, partOfSpeech, phonetic, sente
       {/* Pre-flip action — only Później remains */}
       <div className={`tn-actions ${isFlipped ? "tn-actions--hidden" : ""}`}>
         <button className="tn-btn tn-btn--later tn-btn--full" onClick={handleLater}>Później</button>
+        <button className="tn-btn tn-btn--pause tn-btn--full" onClick={handlePause}>Wstrzymaj do odwołania</button>
       </div>
     </div>
   );
